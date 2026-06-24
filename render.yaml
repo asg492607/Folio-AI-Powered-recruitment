@@ -25,7 +25,6 @@ services:
   - type: web
     name: mitiod-candidate-ui
     env: static
-    region: oregon
     plan: free
     rootDir: "candidate uiux"
     buildCommand: npm install && npm run build
