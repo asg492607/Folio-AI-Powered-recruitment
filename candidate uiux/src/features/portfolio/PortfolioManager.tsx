@@ -161,22 +161,12 @@ interface PortfolioReportProps {
 }
 
 const fallbackMetrics = [
-  { label: 'Visual craft',  score: 92 },
-  { label: 'Process docs',  score: 68 },
-  { label: 'Tool depth',    score: 85 },
-  { label: 'Domain range',  score: 74 },
-  { label: 'Case quality',  score: 81 },
-  { label: 'Impact',        score: 63 },
-];
-
-const fallbackCaseStudies = [
-  {
-    title: 'Razorpay Checkout Redesign',
-    score: 91,
-    badge: 'Strong',
-    border: '#10b981',
-    description: 'Clear problem framing, documented iteration rounds, and measurable outcomes. This case study raises your match score for fintech roles.',
-  }
+  { label: 'Visual craft',  score: 0 },
+  { label: 'Process docs',  score: 0 },
+  { label: 'Tool depth',    score: 0 },
+  { label: 'Domain range',  score: 0 },
+  { label: 'Case quality',  score: 0 },
+  { label: 'Impact',        score: 0 },
 ];
 
 function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
@@ -195,7 +185,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
     { label: 'Visual craft', score: Math.min(96, 70 + designToolsCount * 2) },
   ] : null;
 
-  const globalScore = reportData ? Math.round((realMetrics!.reduce((acc, m) => acc + m.score, 0)) / 6) : 87;
+  const globalScore = reportData ? Math.round((realMetrics!.reduce((acc, m) => acc + m.score, 0)) / 6) : 0;
   const metrics = realMetrics || fallbackMetrics;
   
   const caseStudies = reportData?.projects?.map((proj: any) => {
@@ -207,7 +197,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
       border: pseudoScore >= 85 ? '#10b981' : pseudoScore >= 70 ? '#6366f1' : '#f97316',
       description: proj.details || 'No description extracted.'
     };
-  }) || fallbackCaseStudies;
+  }) || [];
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAF9F7] font-sans text-navy">
@@ -281,7 +271,8 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
 }
 
 // ── Main PortfolioManager ─────────────────────────────────────────────────────
-export function PortfolioManager() {
+export default function PortfolioManager() {
+  const [sources, setSources] = useState<any[]>([]);
   const [pdfUploaded, setPdfUploaded] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisDone, setAnalysisDone] = useState(false);

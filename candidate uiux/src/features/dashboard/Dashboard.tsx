@@ -22,7 +22,7 @@ export function Dashboard() {
             Good morning, {firstName}.
           </h1>
           <p className="text-navy/60 font-sans text-base">
-            Your portfolio intelligence is active. 3 new matches since yesterday.
+            Your portfolio intelligence is active. 0 new matches since yesterday.
           </p>
         </div>
 
@@ -30,17 +30,17 @@ export function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200">
             <p className="text-xs font-mono tracking-widest text-navy/40 uppercase mb-2">Applied</p>
-            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">6</p>
+            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">0</p>
             <p className="text-sm text-navy/60">applications</p>
           </div>
           <div className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200">
             <p className="text-xs font-mono tracking-widest text-navy/40 uppercase mb-2">Under review</p>
-            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">2</p>
+            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">0</p>
             <p className="text-sm text-navy/60">active</p>
           </div>
           <div className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200">
             <p className="text-xs font-mono tracking-widest text-navy/40 uppercase mb-2">Shortlisted</p>
-            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">1</p>
+            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">0</p>
             <p className="text-sm text-navy/60">this week</p>
           </div>
         </div>
@@ -52,9 +52,7 @@ export function Dashboard() {
             <span className="text-[11px] font-mono tracking-widest text-indigo uppercase font-semibold">Career Insight</span>
           </div>
           <p className="text-[15px] leading-relaxed text-navy mb-4 max-w-4xl">
-            Your match score improves most when case studies include process documentation. 
-            2 of your 4 case studies are missing wireframes — adding them could raise your UX 
-            match score by 11 points.
+            Welcome to Folio. Connect your portfolio sources in the Portfolio tab to get personalized career insights and improve your match scores.
           </p>
           <button className="text-sm font-medium text-indigo hover:text-indigo-700 transition-colors flex items-center gap-1.5">
             Update portfolio <span className="text-lg leading-none">→</span>
