@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Security, BackgroundTasks
 from fastapi.security.api_key import APIKeyHeader
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.database.session import get_db
+from app.database.session import get_db, SessionLocal
 from app.schemas.opportunity import OpportunityResponse, OpportunityCreate, OpportunityUpdate
 from app.repositories.opportunity_repo import OpportunityRepository
 from app.services.scraping_service import ScrapingService
@@ -25,6 +25,19 @@ def get_repo(db: Session = Depends(get_db)):
 
 def get_scraping_service(db: Session = Depends(get_db)):
     return ScrapingService(db)
+
+@router.post("/force-scrape")
+def force_scrape(background_tasks: BackgroundTasks):
+    """Triggers a background scrape cycle."""
+    def run_scrape():
+        bg_db = SessionLocal()
+        try:
+            ScrapingService(bg_db).scrape_all()
+        finally:
+            bg_db.close()
+            
+    background_tasks.add_task(run_scrape)
+    return {"message": "Scraping cycle initiated in the background."}
 
 @router.get("", response_model=List[OpportunityResponse])
 def get_opportunities(
