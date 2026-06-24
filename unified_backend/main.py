@@ -20,6 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "Unified Backend is running successfully!"}
+
 # Initialize Firebase
 if not firebase_admin._apps:
     try:
