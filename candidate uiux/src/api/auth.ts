@@ -24,6 +24,7 @@ const defaultCandidate: Candidate = {
   certifications: [],
   projects: [],
   portfolioLinks: [],
+  achievements: [],
   profileCompletionPercent: 0
 };
 
