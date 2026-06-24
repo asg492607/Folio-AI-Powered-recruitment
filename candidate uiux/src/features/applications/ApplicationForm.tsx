@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
-import { portfolioItems } from '../../mocks/data';
 import { useApplicationStore } from '../../store/applicationStore';
 import { useCandidateStore } from '../../store/candidateStore';
 import { useOpportunityStore } from '../../store/opportunityStore';
@@ -36,8 +35,8 @@ export function ApplicationForm() {
   const form = useForm<ApplicationValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      resumeUrl: 'Avni_Sharma_Resume_2025.pdf',
-      portfolioAttachmentUrl: portfolioItems[0]?.url,
+      resumeUrl: '',
+      portfolioAttachmentUrl: candidate.portfolioLinks[0]?.url || '',
     },
   });
 
@@ -185,25 +184,29 @@ export function ApplicationForm() {
               <p className="mb-5 text-[14px] text-navy/60 font-medium">Select specific work to highlight.</p>
 
               <div className="space-y-3">
-                {portfolioItems.map((item) => {
-                  const isSelected = form.watch('portfolioAttachmentUrl') === item.url;
-                  return (
-                    <label key={item.id} className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition-all ${isSelected ? 'border-indigo bg-[#fbfaff]' : 'border-chalk-200 bg-white hover:border-chalk-300'}`}>
-                      <div className="flex items-center gap-3.5">
-                        <div className={`flex h-5 w-5 items-center justify-center rounded-[6px] border ${isSelected ? 'border-indigo bg-indigo text-white' : 'border-chalk-300 bg-white'}`}>
-                          {isSelected && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                {candidate.portfolioLinks.length === 0 ? (
+                  <p className="text-[14px] text-navy/50">No portfolio links added yet.</p>
+                ) : (
+                  candidate.portfolioLinks.map((item, idx) => {
+                    const isSelected = form.watch('portfolioAttachmentUrl') === item.url;
+                    return (
+                      <label key={idx} className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition-all ${isSelected ? 'border-indigo bg-[#fbfaff]' : 'border-chalk-200 bg-white hover:border-chalk-300'}`}>
+                        <div className="flex items-center gap-3.5">
+                          <div className={`flex h-5 w-5 items-center justify-center rounded-[6px] border ${isSelected ? 'border-indigo bg-indigo text-white' : 'border-chalk-300 bg-white'}`}>
+                            {isSelected && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                          </div>
+                          <span className="text-[15px] font-medium text-navy">
+                            {item.url}
+                          </span>
                         </div>
-                        <span className="text-[15px] font-medium text-navy">
-                          {item.caseStudy?.title ?? item.url}
+                        <input type="radio" value={item.url} {...form.register('portfolioAttachmentUrl')} className="hidden" />
+                        <span className="rounded-full bg-[#f3f0ff] px-3.5 py-1 text-[12px] font-bold tracking-wide text-indigo capitalize">
+                          {item.type.replace('_', ' ')}
                         </span>
-                      </div>
-                      <input type="radio" value={item.url} {...form.register('portfolioAttachmentUrl')} className="hidden" />
-                      <span className="rounded-full bg-[#f3f0ff] px-3.5 py-1 text-[12px] font-bold tracking-wide text-indigo capitalize">
-                        {item.source.replace('_', ' ')}
-                      </span>
-                    </label>
-                  );
-                })}
+                      </label>
+                    );
+                  })
+                )}
               </div>
             </div>
 

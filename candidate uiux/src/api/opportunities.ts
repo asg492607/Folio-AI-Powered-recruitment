@@ -21,6 +21,7 @@ export async function fetchOpportunities(): Promise<Opportunity[]> {
       description: item.description || 'No description provided.',
       requiredSkills: item.technologies || [],
       compensation: item.salary_range || 'Not specified',
+      applyUrl: item.url || item.apply_url || '',
       teamInfo: '',
       hiringProcess: [],
       questions: []

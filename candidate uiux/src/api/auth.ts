@@ -2,7 +2,30 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithP
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import type { Candidate, CandidateRole } from '../types';
-import { candidate as mockCandidate } from '../mocks/data';
+
+const defaultCandidate: Candidate = {
+  id: 'guest',
+  email: '',
+  authProvider: 'email',
+  role: 'design_student',
+  personalInfo: {
+    name: 'Candidate',
+    phone: '',
+    location: '',
+    avatarUrl: ''
+  },
+  education: [],
+  designDiscipline: [],
+  skills: [],
+  careerGoals: '',
+  experienceLevel: 'student',
+  aboutMe: '',
+  experience: [],
+  certifications: [],
+  projects: [],
+  portfolioLinks: [],
+  profileCompletionPercent: 0
+};
 
 export async function loginWithEmail(email: string, password?: string): Promise<{ token: string; candidate: Candidate }> {
   const pwd = password || 'password123';
@@ -12,7 +35,7 @@ export async function loginWithEmail(email: string, password?: string): Promise<
   
   const docRef = doc(db, "candidates", user.uid);
   const docSnap = await getDoc(docRef);
-  let candidateData = mockCandidate;
+  let candidateData = defaultCandidate;
   if (docSnap.exists()) {
     candidateData = docSnap.data() as Candidate;
   }
@@ -26,7 +49,7 @@ export async function signupWithEmail(email: string, role: CandidateRole, passwo
   const user = userCredential.user;
   const token = await user.getIdToken();
   
-  const candidateData: Candidate = { ...mockCandidate, id: user.uid, email: user.email || email, role };
+  const candidateData: Candidate = { ...defaultCandidate, id: user.uid, email: user.email || email, role };
   await setDoc(doc(db, "candidates", user.uid), candidateData);
   
   return { token, candidate: candidateData };
@@ -40,7 +63,7 @@ export async function loginWithGoogle(): Promise<{ token: string; candidate: Can
   
   const docRef = doc(db, "candidates", user.uid);
   const docSnap = await getDoc(docRef);
-  let candidateData: Candidate = { ...mockCandidate, id: user.uid, email: user.email || '', authProvider: 'google' as const };
+  let candidateData: Candidate = { ...defaultCandidate, id: user.uid, email: user.email || '', authProvider: 'google' as const };
   
   if (docSnap.exists()) {
     candidateData = docSnap.data() as Candidate;

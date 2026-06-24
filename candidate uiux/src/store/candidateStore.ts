@@ -1,11 +1,34 @@
 import { create } from 'zustand';
-import { candidate as mockCandidate } from '../mocks/data';
 import type { Candidate } from '../types';
 import { calculateProfileCompletion } from '../utils/profile';
 import { trackEvent } from '../utils/analytics';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+
+const defaultCandidate: Candidate = {
+  id: 'guest',
+  email: '',
+  authProvider: 'email',
+  role: 'design_student',
+  personalInfo: {
+    name: 'Candidate',
+    phone: '',
+    location: '',
+    avatarUrl: ''
+  },
+  education: [],
+  designDiscipline: [],
+  skills: [],
+  careerGoals: '',
+  experienceLevel: 'student',
+  aboutMe: '',
+  experience: [],
+  certifications: [],
+  projects: [],
+  portfolioLinks: [],
+  profileCompletionPercent: 0
+};
 
 interface CandidateState {
   candidate: Candidate;
@@ -14,7 +37,7 @@ interface CandidateState {
 }
 
 export const useCandidateStore = create<CandidateState>((set) => ({
-  candidate: { ...mockCandidate, personalInfo: { ...mockCandidate.personalInfo, name: 'Loading...' } }, // Default to loading state
+  candidate: defaultCandidate,
   updateCandidate: (patch) =>
     set((state) => {
       const next = { ...state.candidate, ...patch };
@@ -30,7 +53,6 @@ export const useCandidateStore = create<CandidateState>((set) => ({
           if (user.displayName) {
              next.personalInfo = { ...next.personalInfo, name: user.displayName };
           } else {
-             // Fallback to email prefix
              next.personalInfo = { ...next.personalInfo, name: user.email?.split('@')[0] || 'User' };
           }
           if (user.photoURL) {
@@ -39,7 +61,6 @@ export const useCandidateStore = create<CandidateState>((set) => ({
           return { candidate: next };
         });
 
-        // Optionally fetch from firestore if we are saving candidate data there
         try {
           const docRef = doc(db, 'candidates', user.uid);
           const docSnap = await getDoc(docRef);
@@ -50,8 +71,7 @@ export const useCandidateStore = create<CandidateState>((set) => ({
           console.error("Firestore candidate fetch error:", e);
         }
       } else {
-        // Logged out
-        set({ candidate: mockCandidate });
+        set({ candidate: defaultCandidate });
       }
     });
   }
