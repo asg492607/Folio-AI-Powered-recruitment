@@ -50,3 +50,39 @@ class HimalayasScraper(BaseScraper):
     def normalize(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         return normalize_job(raw_data, "Himalayas")
 
+class JobicyIndiaScraper(BaseScraper):
+    """Fetches remote design jobs for India from Jobicy API."""
+    def scrape(self) -> List[Dict[str, Any]]:
+        url = "https://jobicy.com/api/v2/remote-jobs?geo=apac,india&industry=design,marketing"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        try:
+            with httpx.Client(headers=headers, timeout=15.0) as client:
+                response = client.get(url)
+                response.raise_for_status()
+                data = response.json()
+                
+                jobs_data = data.get("jobs", [])
+                
+                results = []
+                for job in jobs_data:
+                    raw_job = {
+                        "raw_title": job.get("jobTitle"),
+                        "company_name": job.get("companyName"),
+                        "job_description": job.get("jobDescription"),
+                        "job_location": job.get("jobGeo", "Remote India"),
+                        "url": job.get("url"),
+                        "site": "Jobicy",
+                        "date_posted": str(job.get("pubDate")),
+                        "salary": job.get("annualSalaryMin") and f"${job.get('annualSalaryMin')}-${job.get('annualSalaryMax')}" or None
+                    }
+                    if is_design_related(raw_job):
+                        results.append(raw_job)
+                
+                return dedupe_jobs(results)
+        except Exception as e:
+            print(f"[JobicyIndiaScraper] Error: {e}")
+            return []
+
+    def normalize(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
+        return normalize_job(raw_data, "Jobicy")
+

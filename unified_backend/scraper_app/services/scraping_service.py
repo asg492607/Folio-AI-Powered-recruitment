@@ -17,7 +17,7 @@ from app.scrapers.krop_motionographer import KropScraper, MotionographerScraper
 from app.scrapers.remotive import RemotiveScraper
 from app.scrapers.the_muse import TheMuseScraper
 from app.scrapers.weworkremotely import WeWorkRemotelyScraper
-from app.scrapers.reliable_apis import RemoteOKScraper, HimalayasScraper
+from app.scrapers.reliable_apis import RemoteOKScraper, HimalayasScraper, JobicyIndiaScraper
 from app.scrapers.startups import YCombinatorScraper
 from app.scrapers.freelance import UpworkScraper, UXJobsBoardScraper
 from app.scrapers.naukri import NaukriScraper
@@ -44,6 +44,7 @@ class ScrapingService:
             "instahyre": InstahyreScraper(),
             "cutshort": CutShortScraper(),
             "internshala": IntershalaScraper(),
+            "jobicy_india": JobicyIndiaScraper(),
             
             # ── Global Giants (Global + India via JobSpy/Custom) ─────────
             "glassdoor": GlassdoorScraper(),
