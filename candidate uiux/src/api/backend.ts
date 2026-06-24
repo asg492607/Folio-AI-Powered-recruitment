@@ -24,6 +24,9 @@ export const portfolioApi = {
   analyzeUrl: async (url: string) => {
     return api.post('/api/portfolio/api/v1/analyze/url', { url });
   },
+  getReport: async (jobId: string) => {
+    return api.get(`/api/portfolio/api/v1/report/${jobId}`);
+  },
 };
 
 // Assessment endpoints
