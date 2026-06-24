@@ -1,6 +1,9 @@
 import datetime
 from sqlalchemy import Column, String, DateTime, JSON, Text, Integer
-from database import Base
+try:
+    from portfolio_app.database import Base
+except ImportError:
+    from database import Base
 
 class Job(Base):
     __tablename__ = "jobs"

@@ -12,18 +12,34 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-import models
-from database import engine, get_db
-from storage import storage_client
-from vector_db import vector_db
-from analyzer import (
-    extract_text_from_pdf,
-    extract_images_from_pdf,
-    scrape_url_content,
-    parse_figma_content,
-    generate_text_embedding,
-    run_ai_analysis
-)
+try:
+    from portfolio_app import models
+except ImportError:
+    import models
+try:
+    from portfolio_app.database import engine, get_db
+    from portfolio_app.storage import storage_client
+    from portfolio_app.vector_db import vector_db
+    from portfolio_app.analyzer import (
+        extract_text_from_pdf,
+        extract_images_from_pdf,
+        scrape_url_content,
+        parse_figma_content,
+        generate_text_embedding,
+        run_ai_analysis
+    )
+except ImportError:
+    from database import engine, get_db
+    from storage import storage_client
+    from vector_db import vector_db
+    from analyzer import (
+        extract_text_from_pdf,
+        extract_images_from_pdf,
+        scrape_url_content,
+        parse_figma_content,
+        generate_text_embedding,
+        run_ai_analysis
+    )
 
 # Initialize database tables
 models.Base.metadata.create_all(bind=engine)
