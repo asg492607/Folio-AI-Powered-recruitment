@@ -3,9 +3,26 @@ from app.models.opportunity import Opportunity
 from app.models.skill import Skill
 from app.schemas.opportunity import OpportunityCreate, OpportunityUpdate
 
+from datetime import datetime, timedelta
 class OpportunityRepository:
     def __init__(self, db_session: Session):
         self.db = db_session
+
+    def delete_expired(self):
+        """Deletes opportunities whose deadline has passed or are older than 30 days if no deadline."""
+        now = datetime.utcnow()
+        thirty_days_ago = now - timedelta(days=30)
+        
+        # Delete if deadline passed
+        expired = self.db.query(Opportunity).filter(Opportunity.deadline < now).delete()
+        
+        try:
+            stale = self.db.query(Opportunity).filter(Opportunity.deadline == None, Opportunity.created_at < thirty_days_ago).delete()
+        except Exception:
+            stale = 0
+            
+        self.db.commit()
+        return expired + stale
 
     def get_all(
         self,

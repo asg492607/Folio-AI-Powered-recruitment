@@ -106,6 +106,13 @@ class ScrapingService:
     def scrape_all(self) -> Dict[str, Any]:
         import concurrent.futures
         
+        # Clean up expired or stale opportunities first
+        try:
+            deleted = self.repo.delete_expired()
+            print(f"[ScrapingService] Deleted {deleted} expired opportunities.")
+        except Exception as e:
+            print(f"[ScrapingService] Failed to delete expired opportunities: {e}")
+        
         # 1. Fetch raw items concurrently (Network IO Bound)
         def fetch_raw(source_name: str):
             scraper = self.scrapers.get(source_name)

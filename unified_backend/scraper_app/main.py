@@ -46,7 +46,7 @@ def start_scheduler():
     if os.getenv("ENABLE_BACKGROUND_SCRAPING", "true").lower() != "true":
         return
 
-    interval_minutes = int(os.getenv("SCRAPE_INTERVAL_MINUTES", "360"))
+    interval_minutes = int(os.getenv("SCRAPE_INTERVAL_MINUTES", "720"))
     scheduler.add_job(
         run_scheduled_scrape,
         "interval",
