@@ -151,6 +151,29 @@ class ScrapingService:
                         
                         if opportunity and was_created:
                             created += 1
+                            # Push to Matchmaking Engine
+                            import requests, os
+                            port = os.getenv("PORT", "8000")
+                            try:
+                                payload = {
+                                    "job_id": str(opportunity.id),
+                                    "title": opportunity.title,
+                                    "company": opportunity.company,
+                                    "description": opportunity.description or "",
+                                    "skills": opportunity.technologies or [],
+                                    "tools": [],
+                                    "industry": opportunity.domain or "",
+                                    "location": opportunity.location or "",
+                                    "job_type": opportunity.work_type or "",
+                                    "metadata": {
+                                        "apply_url": opportunity.url or opportunity.apply_url or "",
+                                        "source": opportunity.source,
+                                        "salary_range": opportunity.salary_range or ""
+                                    }
+                                }
+                                requests.post(f"http://127.0.0.1:{port}/api/portfolio/v1/jobs", json=payload, timeout=5)
+                            except Exception as ingest_err:
+                                print(f"[ScrapingService] Failed to ingest job to Matchmaking Engine: {ingest_err}")
                         else:
                             updated += 1
                     except Exception as e:
