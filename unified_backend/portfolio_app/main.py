@@ -65,8 +65,10 @@ class UrlAnalyzeRequest(BaseModel):
     url: str
 
 async def process_portfolio_job(job_id: str, content: str, source_label: str, extracted_images: list = None, extracted_links: list = None, local_file_to_clean: str = None):
-    """Orchestrates the background analysis pipeline: S3 storage -> vector embedding -> AI analysis -> DB update."""
-    from database import SessionLocal
+    try:
+        from portfolio_app.database import SessionLocal
+    except ImportError:
+        from database import SessionLocal
     db = SessionLocal()
     try:
         # Step 2: Save raw contents to MinIO/S3
