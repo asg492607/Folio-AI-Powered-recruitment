@@ -40,7 +40,7 @@ export async function loginWithGoogle(): Promise<{ token: string; candidate: Can
   
   const docRef = doc(db, "candidates", user.uid);
   const docSnap = await getDoc(docRef);
-  let candidateData = { ...mockCandidate, id: user.uid, email: user.email || '', authProvider: 'google' as const };
+  let candidateData: Candidate = { ...mockCandidate, id: user.uid, email: user.email || '', authProvider: 'google' as const };
   
   if (docSnap.exists()) {
     candidateData = docSnap.data() as Candidate;
