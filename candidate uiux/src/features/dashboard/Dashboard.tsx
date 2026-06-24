@@ -2,10 +2,12 @@ import { Bookmark, Sparkles, Plus, ExternalLink, CheckCircle2 } from 'lucide-rea
 import { useCandidateStore } from '../../store/candidateStore';
 import { PageHeader } from '../../components/PageHeader';
 import { seedJobsToFirestore } from '../../utils/seedJobs';
+import { useUnifiedData } from '../../hooks/useUnifiedData';
 
 export function Dashboard() {
   const candidate = useCandidateStore((state) => state.candidate);
   const firstName = candidate.personalInfo.name.split(' ')[0] || 'Avni';
+  const { data } = useUnifiedData();
 
   return (
     <div className="flex min-h-screen flex-col bg-chalk">
