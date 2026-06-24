@@ -48,7 +48,7 @@ export function OpportunityDiscovery() {
         selectedDisciplines.length === 0 ||
         selectedDisciplines.some(
           (d) =>
-            opportunity.discipline.toLowerCase() === d.toLowerCase() ||
+            opportunity.discipline?.toLowerCase() === d.toLowerCase() ||
             (d === 'UI/UX' && opportunity.discipline === 'UI/UX')
         );
 
