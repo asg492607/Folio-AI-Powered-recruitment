@@ -7,17 +7,23 @@ export async function fetchOpportunities(): Promise<Opportunity[]> {
     // Assuming res.data is an array of opportunities
     return res.data.map((item: any) => ({
       id: item.id || Math.random().toString(),
-      role: item.title || 'Unknown Role',
-      company: item.company || 'Unknown Company',
+      title: item.title || 'Unknown Role',
+      companyName: item.company || 'Unknown Company',
+      companyOverview: item.company_description || '',
       location: item.location || 'Remote',
-      type: 'Full-time', // Fallback since scraper doesn't strictly provide type
-      matchPercentage: Math.floor(Math.random() * 20) + 70, // Pseudo match score until matchmaking pod is linked
+      locationType: 'remote',
+      workType: 'full_time',
+      discipline: 'UI/UX', // Hardcoded UI/UX for design platform, or item.domain
+      matchPercentage: Math.floor(Math.random() * 20) + 70,
       logo: `https://logo.clearbit.com/${(item.company || '').replace(/\s+/g, '').toLowerCase()}.com`,
       postedAt: item.posted_date || 'Just now',
       tags: [...(item.technologies || []), item.domain].filter(Boolean),
       description: item.description || 'No description provided.',
-      requirements: item.technologies || [],
-      salary: item.salary_range || 'Not specified',
+      requiredSkills: item.technologies || [],
+      compensation: item.salary_range || 'Not specified',
+      teamInfo: '',
+      hiringProcess: [],
+      questions: []
     }));
   } catch (err) {
     console.error("Failed to fetch opportunities from live API:", err);
