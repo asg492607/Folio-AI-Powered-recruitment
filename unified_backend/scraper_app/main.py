@@ -46,6 +46,7 @@ def start_scheduler():
     if os.getenv("ENABLE_BACKGROUND_SCRAPING", "true").lower() != "true":
         return
 
+    from datetime import datetime
     interval_minutes = int(os.getenv("SCRAPE_INTERVAL_MINUTES", "720"))
     scheduler.add_job(
         run_scheduled_scrape,
@@ -53,6 +54,7 @@ def start_scheduler():
         minutes=interval_minutes,
         id="scrape_design_opportunities",
         replace_existing=True,
+        next_run_time=datetime.now()
     )
     scheduler.start()
 
