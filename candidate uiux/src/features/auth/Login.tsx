@@ -25,7 +25,7 @@ export function Login() {
 
   async function finishLogin(values?: LoginValues) {
     const session = values
-      ? await loginWithEmail(values.email)
+      ? await loginWithEmail(values.email, values.password)
       : await loginWithGoogle();
     setSession(session.token, session.candidate);
     trackSessionStart();

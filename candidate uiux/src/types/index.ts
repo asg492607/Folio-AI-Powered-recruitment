@@ -63,6 +63,7 @@ export interface Opportunity {
   keyResponsibilities?: string[];
   hiringSteps?: { step: number; title: string; duration: string }[];
   sidebarDetails?: { label: string; icon: string }[];
+  applyUrl?: string;
 }
 
 export interface Application {

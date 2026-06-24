@@ -1,6 +1,7 @@
 import { Bookmark, Sparkles, Plus, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { useCandidateStore } from '../../store/candidateStore';
 import { PageHeader } from '../../components/PageHeader';
+import { seedJobsToFirestore } from '../../utils/seedJobs';
 
 export function Dashboard() {
   const candidate = useCandidateStore((state) => state.candidate);
@@ -13,7 +14,11 @@ export function Dashboard() {
       <div className="p-8 pb-20 animate-slide-up">
         {/* Greeting Section */}
         <div className="mb-8">
-          <h1 className="font-serif text-[32px] tracking-tight text-navy mb-1.5">
+          <h1 
+            className="font-serif text-[32px] tracking-tight text-navy mb-1.5 cursor-pointer"
+            onDoubleClick={seedJobsToFirestore}
+            title="Double click to seed jobs to Firebase"
+          >
             Good morning, {firstName}.
           </h1>
           <p className="text-navy/60 font-sans text-base">

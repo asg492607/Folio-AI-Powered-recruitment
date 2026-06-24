@@ -1,4 +1,4 @@
-import { Bookmark, Check, ChevronLeft, Clock, DollarSign, MapPin, Sparkles, Building2 } from 'lucide-react';
+import { Bookmark, Check, ChevronLeft, Clock, DollarSign, MapPin, Sparkles, Building2, ExternalLink } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
@@ -159,12 +159,23 @@ export function OpportunityDetails() {
                 </div>
               )}
 
-              <div className="mb-6 space-y-3.5">
-                <Link to={`/opportunities/${opportunity.id}/apply`} className="block">
-                  <Button className="w-full justify-center rounded-xl bg-[#6366f1] py-6 text-[16px] font-medium text-white hover:bg-[#4f46e5]">
-                    Apply to this role
-                  </Button>
-                </Link>
+              <div className="flex flex-col gap-3">
+                {opportunity.applyUrl ? (
+                  <a href={opportunity.applyUrl} target="_blank" rel="noreferrer" className="block">
+                    <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 font-medium text-white transition-all hover:bg-indigo-600 hover:shadow-md hover:-translate-y-0.5">
+                      Apply to this role
+                      <ExternalLink className="h-4 w-4" />
+                    </button>
+                  </a>
+                ) : (
+                  <Link to={`/opportunities/${opportunity.id}/apply`} className="block">
+                    <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 font-medium text-white transition-all hover:bg-indigo-600 hover:shadow-md hover:-translate-y-0.5">
+                      Apply to this role
+                      <span className="text-lg leading-none">→</span>
+                    </button>
+                  </Link>
+                )}
+
                 <Button
                   variant="secondary"
                   className="w-full justify-center rounded-xl border-chalk-200 bg-white py-6 text-[16px] font-medium text-navy hover:bg-chalk-50 shadow-sm"

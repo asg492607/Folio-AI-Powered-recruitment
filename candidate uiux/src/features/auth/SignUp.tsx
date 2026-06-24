@@ -24,7 +24,7 @@ export function SignUp() {
 
   async function onSubmit(values: SignUpValues) {
     // In a real app, you'd pass 'name' and 'role' to the backend
-    const session = await signupWithEmail(values.email, 'design_student'); // Defaulting role for now to match backend
+    const session = await signupWithEmail(values.email, 'design_student', values.password); // Defaulting role for now to match backend
     setSession(session.token, session.candidate);
     toast.success('Welcome in. Let’s shape your profile.');
     navigate('/onboarding');

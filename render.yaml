@@ -1,0 +1,38 @@
+services:
+  # 1. The Unified Python Backend API
+  - type: web
+    name: mitiod-unified-api
+    env: python
+    region: oregon
+    plan: free
+    rootDir: unified_backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: ENABLE_BACKGROUND_SCRAPING
+        value: "true"
+      # The credentials JSON string can be pasted into the Render dashboard
+      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+
+  # 2. The React Candidate UIUX Frontend
+  - type: web
+    name: mitiod-candidate-ui
+    env: static
+    region: oregon
+    plan: free
+    rootDir: "candidate uiux"
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: mitiod-unified-api
+          envVarKey: RENDER_EXTERNAL_URL

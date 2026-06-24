@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   LayoutDashboard,
   FolderOpen,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useOpportunityStore } from '../store/opportunityStore';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,6 +24,12 @@ const links = [
 export function AppLayout() {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
+  const subscribeToOpportunities = useOpportunityStore((state) => state.subscribeToOpportunities);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToOpportunities();
+    return () => unsubscribe();
+  }, [subscribeToOpportunities]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-chalk selection:bg-indigo-100 selection:text-navy">
