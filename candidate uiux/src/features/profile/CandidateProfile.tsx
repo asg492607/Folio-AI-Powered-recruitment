@@ -71,10 +71,10 @@ export function CandidateProfile() {
                   {initial}
                 </div>
                 <div>
-                  <h1 className="text-xl font-medium text-navy mb-1">{candidate.personalInfo.name || 'Avni Sharma'}</h1>
-                  <p className="text-sm text-navy/60 mb-3">Product Designer · Mumbai, India</p>
+                  <h1 className="text-xl font-medium text-navy mb-1">{candidate.personalInfo.name || 'Candidate'}</h1>
+                  <p className="text-sm text-navy/60 mb-3">{candidate.role.replace('_', ' ')} · {candidate.personalInfo.location || 'Location Not Set'}</p>
                   <div className="flex gap-2">
-                    {['UI/UX', 'Product Design', 'Design Systems'].map(tag => (
+                    {candidate.designDiscipline?.map(tag => (
                       <span key={tag} className="rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-medium text-indigo">
                         {tag}
                       </span>
@@ -85,9 +85,9 @@ export function CandidateProfile() {
               <div className="relative flex h-[60px] w-[60px] items-center justify-center shrink-0">
                 <svg className="absolute inset-0 h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="16" fill="none" className="stroke-chalk-200" strokeWidth="3" />
-                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-mint" strokeWidth="3" strokeDasharray="100" strokeDashoffset="25" strokeLinecap="round" />
+                  <circle cx="18" cy="18" r="16" fill="none" className="stroke-mint" strokeWidth="3" strokeDasharray={`${candidate.profileCompletionPercent}, 100`} strokeLinecap="round" />
                 </svg>
-                <span className="font-sans text-xs font-bold text-navy">75%</span>
+                <span className="font-sans text-xs font-bold text-navy">{candidate.profileCompletionPercent}%</span>
               </div>
             </div>
 
@@ -128,7 +128,7 @@ export function CandidateProfile() {
                 </div>
               ) : (
                 <p className="text-[15px] leading-relaxed text-navy/80">
-                  {aboutMe}
+                  {candidate.aboutMe || "Write a little bit about yourself."}
                 </p>
               )}
             </div>
@@ -140,26 +140,24 @@ export function CandidateProfile() {
                 <button className="text-sm font-medium text-indigo hover:text-indigo-700">Add</button>
               </div>
               <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy text-white font-medium">R</div>
-                  <div>
-                    <h3 className="font-medium text-navy text-[15px]">Product Designer</h3>
-                    <p className="text-sm text-navy/60 mb-2.5">Razorpay · Jan 2024 – Present</p>
-                    <p className="text-sm text-navy/80 leading-relaxed">
-                      Working on checkout and payment flows. Reduced checkout drop-off by 18% through a redesigned error recovery system.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy text-white font-medium">C</div>
-                  <div>
-                    <h3 className="font-medium text-navy text-[15px]">Design Intern</h3>
-                    <p className="text-sm text-navy/60 mb-2.5">Cred · Jun 2023 – Dec 2023</p>
-                    <p className="text-sm text-navy/80 leading-relaxed">
-                      Contributed to the Rewards Hub redesign. Conducted 12 user interviews and produced the design system component library.
-                    </p>
-                  </div>
-                </div>
+                {candidate.experience.length === 0 ? (
+                  <p className="text-sm text-navy/60">No experience added.</p>
+                ) : (
+                  candidate.experience.map((exp: any, index: number) => (
+                    <div className="flex gap-4" key={index}>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy text-white font-medium">
+                        {exp.company?.charAt(0) || 'C'}
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-navy text-[15px]">{exp.title}</h3>
+                        <p className="text-sm text-navy/60 mb-2.5">{exp.company} · {exp.startDate} – {exp.endDate || 'Present'}</p>
+                        <p className="text-sm text-navy/80 leading-relaxed">
+                          {exp.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -170,11 +168,15 @@ export function CandidateProfile() {
                 <button className="text-sm font-medium text-indigo hover:text-indigo-700">Edit</button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {['Figma', 'Prototyping', 'Design Systems', 'User Research', 'Wireframing', 'Interaction Design', 'Adobe XD', 'HTML/CSS'].map(skill => (
-                  <span key={skill} className="rounded-full border border-chalk-200 bg-white px-3 py-1.5 text-xs text-navy/70">
-                    {skill}
-                  </span>
-                ))}
+                {candidate.skills.length === 0 ? (
+                  <p className="text-sm text-navy/60">No skills added. Add skills manually or generate them from your Portfolio.</p>
+                ) : (
+                  candidate.skills.map((skill: string) => (
+                    <span key={skill} className="rounded-full border border-chalk-200 bg-white px-3 py-1.5 text-xs text-navy/70">
+                      {skill}
+                    </span>
+                  ))
+                )}
               </div>
             </div>
 
