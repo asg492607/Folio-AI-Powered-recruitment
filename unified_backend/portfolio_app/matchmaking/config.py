@@ -28,9 +28,9 @@ class Settings(BaseModel):
     portfolio_collection_name: str = "student_portfolios"
     job_collection_name: str = "job_listings"
 
-    embedding_model_name: str = "intfloat/e5-small-v2"
+    embedding_model_name: str = "all-MiniLM-L6-v2"
     reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    enable_reranker: bool = True
+    enable_reranker: bool = False
 
     semantic_top_k: int = 50
     bm25_top_k: int = 50
@@ -66,12 +66,12 @@ def load_settings() -> Settings:
         chroma_database=os.getenv("CHROMA_DATABASE", ""),
         portfolio_collection_name=os.getenv("PORTFOLIO_COLLECTION_NAME", "student_portfolios"),
         job_collection_name=os.getenv("JOB_COLLECTION_NAME", "job_listings"),
-        embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "intfloat/e5-small-v2"),
+        embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2"),
         reranker_model_name=os.getenv(
             "RERANKER_MODEL_NAME",
             "cross-encoder/ms-marco-MiniLM-L-6-v2",
         ),
-        enable_reranker=_parse_bool(os.getenv("ENABLE_RERANKER"), True),
+        enable_reranker=_parse_bool(os.getenv("ENABLE_RERANKER"), False),
         semantic_top_k=int(os.getenv("SEMANTIC_TOP_K", "50")),
         bm25_top_k=int(os.getenv("BM25_TOP_K", "50")),
         rerank_top_k=int(os.getenv("RERANK_TOP_K", "25")),
