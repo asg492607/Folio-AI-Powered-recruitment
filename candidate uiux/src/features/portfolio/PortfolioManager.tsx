@@ -180,17 +180,34 @@ const fallbackCaseStudies = [
 ];
 
 function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
-  // Use real data if available, otherwise fallback
-  const globalScore = reportData?.portfolio_score ?? 87;
-  const metrics = reportData?.metrics ? Object.entries(reportData.metrics).map(([k, v]) => ({ label: k.replace(/_/g, ' '), score: v as number })) : fallbackMetrics;
+  // Generate pseudo-metrics based on real data lengths since Groq doesn't return integer scores
+  const designToolsCount = reportData?.skills?.design_tools?.length || 0;
+  const methodsCount = reportData?.skills?.methodologies_and_processes?.length || 0;
+  const projectsCount = reportData?.projects?.length || 0;
+  const industriesCount = reportData?.industries?.length || 0;
+
+  const realMetrics = reportData ? [
+    { label: 'Tool depth', score: Math.min(98, 50 + designToolsCount * 5) },
+    { label: 'Process docs', score: Math.min(95, 40 + methodsCount * 8) },
+    { label: 'Case quality', score: Math.min(99, 60 + projectsCount * 10) },
+    { label: 'Domain range', score: Math.min(92, 50 + industriesCount * 10) },
+    { label: 'Impact', score: Math.min(94, 60 + projectsCount * 5) },
+    { label: 'Visual craft', score: Math.min(96, 70 + designToolsCount * 2) },
+  ] : null;
+
+  const globalScore = reportData ? Math.round((realMetrics!.reduce((acc, m) => acc + m.score, 0)) / 6) : 87;
+  const metrics = realMetrics || fallbackMetrics;
   
-  const caseStudies = reportData?.case_studies?.map((cs: any) => ({
-    title: cs.title,
-    score: cs.score,
-    badge: cs.score >= 85 ? 'Strong' : cs.score >= 70 ? 'Good' : 'Needs work',
-    border: cs.score >= 85 ? '#10b981' : cs.score >= 70 ? '#6366f1' : '#f97316',
-    description: cs.feedback
-  })) || fallbackCaseStudies;
+  const caseStudies = reportData?.projects?.map((proj: any) => {
+    const pseudoScore = Math.min(95, 60 + (proj.details?.length || 0) / 15);
+    return {
+      title: proj.name || 'Unnamed Project',
+      score: Math.round(pseudoScore),
+      badge: pseudoScore >= 85 ? 'Strong' : pseudoScore >= 70 ? 'Good' : 'Needs work',
+      border: pseudoScore >= 85 ? '#10b981' : pseudoScore >= 70 ? '#6366f1' : '#f97316',
+      description: proj.details || 'No description extracted.'
+    };
+  }) || fallbackCaseStudies;
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAF9F7] font-sans text-navy">

@@ -45,6 +45,9 @@ export const scraperApi = {
     // Calling the scraper pod manually
     return api.post('/api/scraper/api/v1/opportunities/scrape');
   },
+  getOpportunities: async () => {
+    return api.get('/api/scraper/api/v1/opportunities');
+  }
 };
 
 // Communication endpoints

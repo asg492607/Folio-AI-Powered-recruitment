@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import type { Opportunity } from '../types';
 import { trackEvent } from '../utils/analytics';
-import { collection, getDocs, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { fetchOpportunities } from '../api/opportunities';
 
 interface OpportunityState {
   opportunities: Opportunity[];
@@ -28,11 +27,7 @@ export const useOpportunityStore = create<OpportunityState>((set) => ({
   fetchOpportunities: async () => {
     set({ loading: true, error: null });
     try {
-      const querySnapshot = await getDocs(collection(db, "jobs"));
-      const ops: Opportunity[] = [];
-      querySnapshot.forEach((doc) => {
-        ops.push({ id: doc.id, ...doc.data() } as Opportunity);
-      });
+      const ops = await fetchOpportunities();
       set({ opportunities: ops, loading: false });
     } catch (err) {
       set({ error: (err as Error).message, loading: false });
@@ -40,15 +35,17 @@ export const useOpportunityStore = create<OpportunityState>((set) => ({
   },
   subscribeToOpportunities: () => {
     set({ loading: true, error: null });
-    const unsubscribe = onSnapshot(collection(db, 'jobs'), (snapshot) => {
-      const ops: Opportunity[] = [];
-      snapshot.forEach((doc) => {
-        ops.push({ id: doc.id, ...doc.data() } as Opportunity);
-      });
-      set({ opportunities: ops, loading: false });
-    }, (error) => {
-      set({ error: error.message, loading: false });
-    });
-    return unsubscribe;
+    
+    // Initial fetch
+    fetchOpportunities()
+      .then(ops => set({ opportunities: ops, loading: false }))
+      .catch(err => set({ error: (err as Error).message, loading: false }));
+
+    // Poll live API every 2 minutes
+    const interval = setInterval(() => {
+      fetchOpportunities().then(ops => set({ opportunities: ops }));
+    }, 120000);
+
+    return () => clearInterval(interval);
   }
 }));
