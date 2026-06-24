@@ -73,18 +73,14 @@ class RobustHttpClient:
 
     def get(self, url: str, params: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> httpx.Response:
         """
-        Performs a GET request with automatic retry, backoff, UA rotation, and IP rotation.
+        Performs a GET request with automatic retry, backoff, and UA rotation.
         """
         req_headers = self._get_random_headers(headers)
         last_response = None
         
         for attempt in range(self.max_retries):
-            proxy_url = ProxyManager.get_proxy()
-            proxies = {"http://": proxy_url, "https://": proxy_url} if proxy_url else None
-            
             try:
-                # Create a fresh client for each attempt to cleanly handle proxy rotation
-                with httpx.Client(timeout=self.timeout, proxies=proxies, follow_redirects=True) as client:
+                with httpx.Client(timeout=self.timeout, follow_redirects=True) as client:
                     response = client.get(url, params=params, headers=req_headers)
                     last_response = response
                     
@@ -94,32 +90,26 @@ class RobustHttpClient:
                     if response.status_code in [429, 403]:
                         # Rate limited or forbidden block. 
                         sleep_time = (2 ** attempt) + random.uniform(1, 3)
-                        print(f"[RobustHttpClient] {response.status_code} Blocked. Rotating Proxy and Sleeping {sleep_time:.2f}s...")
+                        print(f"[RobustHttpClient] {response.status_code} Blocked. Sleeping {sleep_time:.2f}s...")
                         time.sleep(sleep_time)
                         
-                        # Remove the dead proxy from the pool
-                        if proxy_url and proxy_url in ProxyManager._proxies:
-                            ProxyManager._proxies.remove(proxy_url)
-                            
                         # Rotate UA for the next attempt
                         req_headers["User-Agent"] = random.choice(self.USER_AGENTS)
                         continue
                         
                     # 404 or 500, break out and return
                     return response
-                    
-            except (httpx.RequestError, httpx.TimeoutException) as e:
-                # Network error, usually means the free proxy is dead
-                if proxy_url and proxy_url in ProxyManager._proxies:
-                    ProxyManager._proxies.remove(proxy_url)
-                    
-                sleep_time = random.uniform(0.5, 2)
-                time.sleep(sleep_time)
+            
+            except httpx.RequestError as exc:
+                print(f"[RobustHttpClient] Request failed on attempt {attempt+1}: {exc}")
+                time.sleep((2 ** attempt) + random.uniform(1, 3))
+                continue
                 
-        # If we exhausted all retries, return the last response (if any) or raise
+        # If all retries failed, return the last response (which might be 403 or None)
         if last_response is not None:
             return last_response
-        raise Exception(f"[RobustHttpClient] All {self.max_retries} attempts failed due to dead proxies or network errors.")
+            
+        raise Exception(f"Failed to fetch {url} after {self.max_retries} attempts")
 
     def close(self):
         pass
