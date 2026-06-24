@@ -39,35 +39,39 @@ class ScrapingService:
             
             # ── India-Specific (Massive Enterprise & Tech) ───────────────
             "naukri": NaukriScraper(),
-            "foundit": FounditScraper(),
-            "hirist": HiristScraper(),
-            "instahyre": InstahyreScraper(),
-            "cutshort": CutShortScraper(),
             "internshala": IntershalaScraper(),
-            "jobicy_india": JobicyIndiaScraper(),
+            
+            # The following are temporarily disabled as per user request
+            # "foundit": FounditScraper(),
+            # "hirist": HiristScraper(),
+            # "instahyre": InstahyreScraper(),
+            # "cutshort": CutShortScraper(),
+            # "jobicy_india": JobicyIndiaScraper(),
             
             # ── Global Giants (Global + India via JobSpy/Custom) ─────────
-            "glassdoor": GlassdoorScraper(),
-            "jobspy": JobSpyScraper(),
+            # "glassdoor": GlassdoorScraper(),
+            # "jobspy": JobSpyScraper(),
             
             # ── Public APIs ─────────────────────────────────────────────
-            "remotive": RemotiveScraper(),
-            "arbeitnow": ArbeitnowScraper(),
-            "remoteok": RemoteOKScraper(),
-            "himalayas": HimalayasScraper(),
-            "ycombinator": YCombinatorScraper(),
-            "uxjobsboard": UXJobsBoardScraper(),
+            # "remotive": RemotiveScraper(),
+            # "arbeitnow": ArbeitnowScraper(),
+            # "remoteok": RemoteOKScraper(),
+            # "himalayas": HimalayasScraper(),
+            # "ycombinator": YCombinatorScraper(),
+            # "uxjobsboard": UXJobsBoardScraper(),
             
-            # ── RSS Feeds ────────────────────────────────────────────────
-            "weworkremotely": WeWorkRemotelyScraper(),
-            "authentic_jobs": AuthenticJobsScraper(),
-            "upwork": UpworkScraper(),
-            
-            # ── Design Community Boards ──────────────────────────────────
-            "behance": BehanceScraper(),
-            "dribbble": DribbbleScraper(),
-            "coroflot": CoroflotScraper(),
-            "motionographer": MotionographerScraper(),
+            # ── Design-Specific ─────────────────────────────────────────
+            # "behance": BehanceScraper(),
+            # "dribbble": DribbbleScraper(),
+            # "authentic_jobs": AuthenticJobsScraper(),
+            # "coroflot": CoroflotScraper(),
+            # "justremote": JustRemoteScraper(),
+            # "creativepool": CreativepoolScraper(),
+            # "smashing": SmashingMagScraper(),
+            # "krop": KropScraper(),
+            # "motionographer": MotionographerScraper(),
+            # "weworkremotely": WeWorkRemotelyScraper(),
+            # "the_muse": TheMuseScraper(),
         }
 
     def scrape_source(self, source: str = "behance") -> Dict[str, Any]:
