@@ -8,33 +8,6 @@ class RemoteOKScraper(BaseScraper):
     def scrape(self) -> List[Dict[str, Any]]:
         # RemoteOK now blocks with 403 Forbidden
         return []
-                data = response.json()
-                
-                # RemoteOK API returns a legal/stats object as the first item in the array
-                if data and isinstance(data, list) and len(data) > 0:
-                    jobs_data = data[1:]
-                else:
-                    return []
-
-                results = []
-                for job in jobs_data:
-                    raw_job = {
-                        "raw_title": job.get("position"),
-                        "company_name": job.get("company"),
-                        "job_description": job.get("description"),
-                        "job_location": job.get("location") or "Remote",
-                        "url": job.get("url"),
-                        "site": "RemoteOK",
-                        "date_posted": job.get("date"),
-                        "salary": f"{job.get('salary_min', '')} - {job.get('salary_max', '')}".strip(" -")
-                    }
-                    if is_design_related(raw_job):
-                        results.append(raw_job)
-                
-                return dedupe_jobs(results)
-        except Exception as e:
-            print(f"[RemoteOKScraper] Error: {e}")
-            return []
 
     def normalize(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         return normalize_job(raw_data, "RemoteOK")

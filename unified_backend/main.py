@@ -47,7 +47,13 @@ if not firebase_admin._apps:
         print(f"Warning: Failed to initialize Firebase Admin. Make sure GOOGLE_APPLICATION_CREDENTIALS is set. {e}")
 
 # Mount Assessment Pod
+def clear_sys_modules():
+    for mod in ["database", "models", "main", "analyzer", "storage", "vector_db", "scrapers", "config", "routes"]:
+        if mod in sys.modules:
+            del sys.modules[mod]
+
 try:
+    clear_sys_modules()
     assessment_dir = os.path.join(BASE_DIR, "assessment_app")
     sys.path.insert(0, assessment_dir)
     from assessment_app.main import app as assessment_api
@@ -59,6 +65,7 @@ except Exception as e:
 
 # Mount Portfolio & Matchmaking Pod
 try:
+    clear_sys_modules()
     portfolio_dir = os.path.join(BASE_DIR, "portfolio_app")
     sys.path.insert(0, portfolio_dir)
     from portfolio_app.main import app as portfolio_api
@@ -70,6 +77,7 @@ except Exception as e:
 
 # Mount Communication Pod
 try:
+    clear_sys_modules()
     comm_dir = os.path.join(BASE_DIR, "communication_app")
     sys.path.insert(0, comm_dir)
     from communication_app.main import app as comm_api
@@ -81,6 +89,7 @@ except Exception as e:
 
 # Mount Scraper Pod
 try:
+    clear_sys_modules()
     sys.modules['app'] = __import__('scraper_app')
     scraper_dir = os.path.join(BASE_DIR, "scraper_app")
     sys.path.insert(0, scraper_dir)
