@@ -1,13 +1,13 @@
 import { Bookmark, Sparkles, Plus, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { useCandidateStore } from '../../store/candidateStore';
+import { useOpportunityStore } from '../../store/opportunityStore';
 import { PageHeader } from '../../components/PageHeader';
 import { seedJobsToFirestore } from '../../utils/seedJobs';
-import { useUnifiedData } from '../../hooks/useUnifiedData';
 
 export function Dashboard() {
   const candidate = useCandidateStore((state) => state.candidate);
+  const opportunities = useOpportunityStore((state) => state.opportunities);
   const firstName = candidate.personalInfo.name.split(' ')[0] || 'Avni';
-  const { data } = useUnifiedData();
 
   return (
     <div className="flex min-h-screen flex-col bg-chalk">
@@ -74,7 +74,7 @@ export function Dashboard() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {data?.opportunities?.slice(0, 4).map((job: any) => (
+              {opportunities?.slice(0, 4).map((job: any) => (
                 <div key={job.id} className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200 flex flex-col hover:border-indigo-200 transition-colors cursor-pointer group">
                   <div className="flex justify-between items-start mb-4">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white font-medium`}>
@@ -97,7 +97,7 @@ export function Dashboard() {
                   </div>
                 </div>
               ))}
-              {(!data?.opportunities || data.opportunities.length === 0) && (
+              {(!opportunities || opportunities.length === 0) && (
                 <div className="col-span-2 text-center py-8 text-navy/50">
                   <p>No recommendations available yet.</p>
                 </div>
