@@ -48,7 +48,7 @@ if not firebase_admin._apps:
 
 # Mount Assessment Pod
 def clear_sys_modules():
-    for mod in ["database", "models", "main", "analyzer", "storage", "vector_db", "scrapers", "config", "routes"]:
+    for mod in ["database", "models", "analyzer", "storage", "vector_db", "scrapers", "config", "routes"]:
         if mod in sys.modules:
             del sys.modules[mod]
 
