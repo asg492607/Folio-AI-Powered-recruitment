@@ -271,7 +271,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
 }
 
 // ── Main PortfolioManager ─────────────────────────────────────────────────────
-export default function PortfolioManager() {
+export function PortfolioManager() {
   const [sources, setSources] = useState<any[]>([]);
   const [pdfUploaded, setPdfUploaded] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);

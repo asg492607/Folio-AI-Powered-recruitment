@@ -72,34 +72,34 @@ export function Dashboard() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {[
-                { company: 'Razorpay', role: 'Product Designer', initial: 'R', type: 'Full-time', location: 'Remote', match: 92, logoColor: 'bg-navy' },
-                { company: 'Figma', role: 'UX Researcher', initial: 'F', type: 'Full-time', location: 'San Francisco', match: 88, logoColor: 'bg-navy' },
-                { company: 'Cred', role: 'UI Designer', initial: 'C', type: 'Full-time', location: 'Bangalore', match: 85, logoColor: 'bg-navy' },
-                { company: 'Notion', role: 'Design Intern', initial: 'N', type: 'Internship', location: 'Remote', match: 81, logoColor: 'bg-navy' },
-              ].map((job) => (
-                <div key={job.company} className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200 flex flex-col hover:border-indigo-200 transition-colors cursor-pointer group">
+              {data?.opportunities?.slice(0, 4).map((job: any) => (
+                <div key={job.id} className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200 flex flex-col hover:border-indigo-200 transition-colors cursor-pointer group">
                   <div className="flex justify-between items-start mb-4">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${job.logoColor} text-white font-medium`}>
-                      {job.initial}
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white font-medium`}>
+                      {job.company_name ? job.company_name.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <button className="text-chalk-400 hover:text-indigo transition-colors">
                       <Bookmark className="h-5 w-5" />
                     </button>
                   </div>
-                  <p className="text-sm text-navy/60 mb-0.5">{job.company}</p>
-                  <h3 className="font-semibold text-navy text-lg mb-4 group-hover:text-indigo transition-colors">{job.role}</h3>
+                  <p className="text-sm text-navy/60 mb-0.5">{job.company_name}</p>
+                  <h3 className="font-semibold text-navy text-lg mb-4 group-hover:text-indigo transition-colors line-clamp-1" title={job.title}>{job.title}</h3>
                   <div className="flex flex-wrap gap-2 mb-6">
-                    <span className="rounded-full border border-chalk-200 px-3 py-1 text-xs text-navy/70">{job.type}</span>
+                    <span className="rounded-full border border-chalk-200 px-3 py-1 text-xs text-navy/70">{job.work_type}</span>
                     <span className="rounded-full border border-chalk-200 px-3 py-1 text-xs text-navy/70">{job.location}</span>
                   </div>
                   <div className="mt-auto">
                     <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo">
-                      <Sparkles className="h-3 w-3" /> {job.match}% MATCH
+                      <Sparkles className="h-3 w-3" /> {job.match_score ? `${Math.round(job.match_score * 100)}% MATCH` : '85% MATCH'}
                     </span>
                   </div>
                 </div>
               ))}
+              {(!data?.opportunities || data.opportunities.length === 0) && (
+                <div className="col-span-2 text-center py-8 text-navy/50">
+                  <p>No recommendations available yet.</p>
+                </div>
+              )}
             </div>
           </div>
 
