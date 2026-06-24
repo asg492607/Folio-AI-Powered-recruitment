@@ -27,6 +27,13 @@ export const portfolioApi = {
   getReport: async (jobId: string) => {
     return api.get(`/api/portfolio/api/v1/report/${jobId}`);
   },
+  matchJobs: async (portfolio_text: string, skills: string[], top_k: number = 25) => {
+    return api.post('/api/portfolio/v1/match', {
+      portfolio_text,
+      skills,
+      top_k
+    });
+  },
 };
 
 // Assessment endpoints

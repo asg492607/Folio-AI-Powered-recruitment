@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Opportunity } from '../types';
 import { trackEvent } from '../utils/analytics';
 import { fetchOpportunities } from '../api/opportunities';
+import { useCandidateStore } from './candidateStore';
 
 interface OpportunityState {
   opportunities: Opportunity[];
@@ -27,7 +28,8 @@ export const useOpportunityStore = create<OpportunityState>((set) => ({
   fetchOpportunities: async () => {
     set({ loading: true, error: null });
     try {
-      const ops = await fetchOpportunities();
+      const candidateSkills = useCandidateStore.getState().candidate.skills;
+      const ops = await fetchOpportunities(candidateSkills);
       set({ opportunities: ops, loading: false });
     } catch (err) {
       set({ error: (err as Error).message, loading: false });
@@ -37,13 +39,15 @@ export const useOpportunityStore = create<OpportunityState>((set) => ({
     set({ loading: true, error: null });
     
     // Initial fetch
-    fetchOpportunities()
+    const candidateSkills = useCandidateStore.getState().candidate.skills;
+    fetchOpportunities(candidateSkills)
       .then(ops => set({ opportunities: ops, loading: false }))
       .catch(err => set({ error: (err as Error).message, loading: false }));
 
     // Poll live API every 2 minutes
     const interval = setInterval(() => {
-      fetchOpportunities().then(ops => set({ opportunities: ops }));
+      const skills = useCandidateStore.getState().candidate.skills;
+      fetchOpportunities(skills).then(ops => set({ opportunities: ops }));
     }, 120000);
 
     return () => clearInterval(interval);

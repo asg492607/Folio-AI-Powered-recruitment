@@ -1,11 +1,30 @@
-import { scraperApi } from './backend';
+import { scraperApi, portfolioApi } from './backend';
 import type { Opportunity } from '../types';
 
-export async function fetchOpportunities(): Promise<Opportunity[]> {
+export async function fetchOpportunities(skills?: string[]): Promise<Opportunity[]> {
   try {
-    const res = await scraperApi.getOpportunities();
-    // Assuming res.data is an array of opportunities
-    return res.data.map((item: any) => ({
+    let resData: any[] = [];
+    
+    if (skills && skills.length > 0) {
+      // Use AI Matchmaking Engine
+      const matchRes = await portfolioApi.matchJobs("Candidate portfolio skills", skills, 25);
+      resData = matchRes.data.results.map((r: any) => {
+        const item = r.metadata || {};
+        return {
+          ...item,
+          id: r.job_id,
+          title: r.title,
+          company: r.company,
+          matchPercentage: Math.round(r.final_score * 100),
+        };
+      });
+    } else {
+      // Fallback to basic scraper fetching
+      const res = await scraperApi.getOpportunities();
+      resData = res.data;
+    }
+    
+    return resData.map((item: any) => ({
       id: item.id || Math.random().toString(),
       title: item.title || 'Unknown Role',
       companyName: item.company || 'Unknown Company',
@@ -13,15 +32,15 @@ export async function fetchOpportunities(): Promise<Opportunity[]> {
       location: item.location || 'Remote',
       locationType: 'remote',
       workType: 'full_time',
-      discipline: 'UI/UX', // Hardcoded UI/UX for design platform, or item.domain
-      matchPercentage: Math.floor(Math.random() * 20) + 70,
+      discipline: 'UI/UX', 
+      matchPercentage: item.matchPercentage || 0, // 0 if not matched by AI
       logo: `https://logo.clearbit.com/${(item.company || '').replace(/\s+/g, '').toLowerCase()}.com`,
       postedAt: item.posted_date || 'Just now',
       tags: [...(item.technologies || []), item.domain].filter(Boolean),
       description: item.description || 'No description provided.',
       requiredSkills: item.technologies || [],
       compensation: item.salary_range || 'Not specified',
-      applyUrl: item.url || item.apply_url || '',
+      applyUrl: item.url || item.apply_url || item.applyUrl || '',
       teamInfo: '',
       hiringProcess: [],
       questions: []
@@ -32,7 +51,7 @@ export async function fetchOpportunities(): Promise<Opportunity[]> {
   }
 }
 
-export async function fetchOpportunity(id: string): Promise<Opportunity | undefined> {
-  const all = await fetchOpportunities();
+export async function fetchOpportunity(id: string, skills?: string[]): Promise<Opportunity | undefined> {
+  const all = await fetchOpportunities(skills);
   return all.find(o => o.id === id);
 }

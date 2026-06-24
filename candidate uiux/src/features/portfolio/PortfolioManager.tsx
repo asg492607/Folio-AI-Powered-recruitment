@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Sparkles, CheckCircle2, Cpu } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { portfolioApi } from '../../api/backend';
+import { useCandidateStore } from '../../store/candidateStore';
 
 // ── Analysis loading steps ────────────────────────────────────────────────────
 const STEPS = [
@@ -307,11 +308,21 @@ export function PortfolioManager() {
     }
   }
 
+  const updateCandidate = useCandidateStore(state => state.updateCandidate);
+
   function handleAnalysisDone(data: any) {
     setIsAnalyzing(false);
     setAnalysisDone(true);
     if (data) {
       setReportData(data);
+      
+      const designTools = data.skills?.design_tools || [];
+      const processes = data.skills?.methodologies_and_processes || [];
+      const combinedSkills = [...designTools, ...processes];
+      
+      if (combinedSkills.length > 0) {
+        updateCandidate({ skills: combinedSkills });
+      }
     }
   }
 
