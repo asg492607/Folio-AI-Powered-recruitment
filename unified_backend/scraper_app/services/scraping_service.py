@@ -30,6 +30,7 @@ from app.scrapers.glassdoor import GlassdoorScraper
 from app.scrapers.jobspy_scraper import JobSpyScraper
 from app.scrapers.internshala_scraper import InternshalaScraper
 from app.scrapers.naukri_scraper import NaukriScraper
+from app.scrapers.job_scratcher_scraper import JobScratcherScraper
 
 class ScrapingService:
     def __init__(self, db: Session):
@@ -37,6 +38,9 @@ class ScrapingService:
         self.classifier = OpportunityClassifier()
         self.pipeline = IntelligencePipeline()
         self.scrapers = {
+            # ── External API ─────────────────────────────────────────────
+            "jobscratcher": JobScratcherScraper(),
+
             # ── LinkedIn Dedicated (Using JobSpy for Cloudflare Bypass) ──────
             "linkedin": JobSpyScraper(site_names=["linkedin"]),
             
