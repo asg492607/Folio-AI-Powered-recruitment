@@ -44,13 +44,21 @@ export const portfolioApi = {
   },
 };
 
+// External Assessment Engine API
+const assessmentAxios = axios.create({
+  baseURL: 'https://assesment-engine-internship.onrender.com',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Assessment endpoints
 export const assessmentApi = {
   startAssessment: async (candidateId: string, topic: string) => {
-    return api.post('/api/assessment/start', { candidateId, topic });
+    return assessmentAxios.post('/api/assessment/apply', { candidateId, topic });
   },
   submitAnswer: async (assessmentId: string, answer: string) => {
-    return api.post(`/api/assessment/${assessmentId}/submit`, { answer });
+    return assessmentAxios.post(`/api/quiz/submit`, { candidate_id: assessmentId, question: '', selected_option: answer, score_assigned: 0 });
   },
 };
 
