@@ -1,9 +1,11 @@
-import { Bookmark, Check, ChevronLeft, Clock, DollarSign, MapPin, Sparkles, Building2, ExternalLink } from 'lucide-react';
+import { Bookmark, Check, ChevronLeft, Clock, DollarSign, MapPin, Sparkles, Building2, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { useCandidateStore } from '../../store/candidateStore';
 import { useOpportunityStore } from '../../store/opportunityStore';
+import { useApplicationStore } from '../../store/applicationStore';
+import toast from 'react-hot-toast';
 
 export function OpportunityDetails() {
   const { id } = useParams();
@@ -12,15 +14,36 @@ export function OpportunityDetails() {
   const opportunities = useOpportunityStore((state) => state.opportunities);
   const savedIds = useOpportunityStore((state) => state.savedIds);
   const toggleSaved = useOpportunityStore((state) => state.toggleSaved);
+  const addApplication = useApplicationStore((state) => state.addApplication);
+  const applications = useApplicationStore((state) => state.applications);
 
   const opportunity = opportunities.find((item) => item.id === id);
   if (!opportunity) return <Navigate to="/opportunities" replace />;
 
   const saved = savedIds.includes(opportunity.id);
+  const alreadyApplied = applications.some((a) => a.opportunityId === opportunity.id);
   const matched = opportunity.requiredSkills.filter((skill) => candidate.skills.includes(skill));
   const missing = opportunity.requiredSkills.filter((skill) => !candidate.skills.includes(skill));
 
   const initial = opportunity.companyName.charAt(0) || 'C';
+
+  // Opens external link AND records application internally so it shows in tracking
+  function applyExternally() {
+    if (!alreadyApplied) {
+      addApplication({
+        id: crypto.randomUUID(),
+        candidateId: candidate.id,
+        opportunityId: opportunity.id,
+        resumeUrl: candidate.portfolioLinks[0]?.url || '',
+        answers: [],
+        status: 'applied',
+        appliedAt: new Date().toISOString(),
+        statusHistory: [{ status: 'applied', timestamp: new Date().toISOString() }],
+      });
+      toast.success('Marked as applied in your tracker!');
+    }
+    window.open(opportunity.applyUrl, '_blank', 'noopener,noreferrer');
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAF9F7] font-sans text-navy">
@@ -160,13 +183,19 @@ export function OpportunityDetails() {
               )}
 
               <div className="flex flex-col gap-3">
-                {opportunity.applyUrl ? (
-                  <a href={opportunity.applyUrl} target="_blank" rel="noreferrer" className="block">
-                    <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 font-medium text-white transition-all hover:bg-indigo-600 hover:shadow-md hover:-translate-y-0.5">
-                      Apply to this role
-                      <ExternalLink className="h-4 w-4" />
-                    </button>
-                  </a>
+                {alreadyApplied ? (
+                  <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] px-5 py-3.5 font-semibold text-[#059669]">
+                    <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
+                    Applied
+                  </div>
+                ) : opportunity.applyUrl ? (
+                  <button
+                    onClick={applyExternally}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 font-medium text-white transition-all hover:bg-indigo-600 hover:shadow-md hover:-translate-y-0.5"
+                  >
+                    Apply to this role
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
                 ) : (
                   <Link to={`/opportunities/${opportunity.id}/apply`} className="block">
                     <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo px-5 py-3.5 font-medium text-white transition-all hover:bg-indigo-600 hover:shadow-md hover:-translate-y-0.5">
