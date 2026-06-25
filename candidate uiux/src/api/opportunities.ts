@@ -10,16 +10,34 @@ export async function fetchOpportunities(skills?: string[]): Promise<Opportunity
     const res = await axios.get('https://job-scratcher.onrender.com/api/v1/opportunities');
     resData = res.data;
     
-    return resData.map((item: any) => ({
-      id: item.id || Math.random().toString(),
-      title: item.title || 'Unknown Role',
-      companyName: item.company || item.companyName || 'Unknown Company',
-      companyOverview: item.description?.substring(0, 200) || '',
-      location: item.location || 'Remote',
-      locationType: (item.remote_status || 'remote') as any,
-      workType: item.category === 'internship' ? 'internship' : item.category === 'freelance' ? 'freelance' : 'full_time',
-      discipline: item.domain?.replace('_', '/').replace('ux/ui', 'UI/UX') || 'UI/UX',
-      matchPercentage: item.matchPercentage || 0,
+    return resData.map((item: any) => {
+      // Calculate a match score if skills are provided
+      let calculatedMatch = 0;
+      if (skills && skills.length > 0) {
+        const textToSearch = ((item.description || '') + ' ' + (item.title || '') + ' ' + (item.skills || '')).toLowerCase();
+        let matches = 0;
+        skills.forEach(skill => {
+          if (textToSearch.includes(skill.toLowerCase())) {
+            matches++;
+          }
+        });
+        // Base score of 40, plus up to 58 based on skill overlap
+        const ratio = matches / skills.length;
+        calculatedMatch = Math.round(40 + (ratio * 58));
+      } else {
+        calculatedMatch = item.matchPercentage || 0;
+      }
+
+      return {
+        id: item.id || Math.random().toString(),
+        title: item.title || 'Unknown Role',
+        companyName: item.company || item.companyName || 'Unknown Company',
+        companyOverview: item.description?.substring(0, 200) || '',
+        location: item.location || 'Remote',
+        locationType: (item.remote_status || 'remote') as any,
+        workType: item.category === 'internship' ? 'internship' : item.category === 'freelance' ? 'freelance' : 'full_time',
+        discipline: item.domain?.replace('_', '/').replace('ux/ui', 'UI/UX') || 'UI/UX',
+        matchPercentage: calculatedMatch,
       logo: `https://logo.clearbit.com/${(item.company || '').replace(/\s+/g, '').toLowerCase()}.com`,
       postedAt: item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recently',
       tags: (item.skills || []).map((s: any) => s.name || s).filter(Boolean),
@@ -30,7 +48,8 @@ export async function fetchOpportunities(skills?: string[]): Promise<Opportunity
       teamInfo: '',
       hiringProcess: [],
       questions: []
-    }));
+    };
+    });
   } catch (err) {
     console.error("Failed to fetch opportunities from live API:", err);
     return [];
