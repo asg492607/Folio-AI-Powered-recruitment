@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { Button } from '../../components/Button';
 import { signupWithEmail, loginWithGoogle } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
+import { useCandidateStore } from '../../store/candidateStore';
 
 const schema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -19,14 +20,17 @@ type SignUpValues = z.infer<typeof schema>;
 export function SignUp() {
   const [role, setRole] = useState<'candidate' | 'recruiter'>('candidate');
   const setSession = useAuthStore((state) => state.setSession);
+  const updateCandidate = useCandidateStore((state) => state.updateCandidate);
   const navigate = useNavigate();
   const form = useForm<SignUpValues>({ resolver: zodResolver(schema) });
 
   async function onSubmit(values: SignUpValues) {
-    // In a real app, you'd pass 'name' and 'role' to the backend
-    const session = await signupWithEmail(values.email, 'design_student', values.password); // Defaulting role for now to match backend
+    // Create auth account with name — saves to Firestore immediately
+    const session = await signupWithEmail(values.email, role, values.password, values.name);
     setSession(session.token, session.candidate);
-    toast.success('Welcome in. Let’s shape your profile.');
+    // Also push name into the candidate store so it shows instantly
+    updateCandidate({ personalInfo: { ...session.candidate.personalInfo, name: values.name } });
+    toast.success('Welcome in. Let\'s shape your profile.');
     navigate('/onboarding');
   }
 

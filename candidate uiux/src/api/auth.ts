@@ -44,13 +44,22 @@ export async function loginWithEmail(email: string, password?: string): Promise<
   return { token, candidate: { ...candidateData, id: user.uid, email: user.email || email } };
 }
 
-export async function signupWithEmail(email: string, role: CandidateRole, password?: string): Promise<{ token: string; candidate: Candidate }> {
+export async function signupWithEmail(email: string, role: CandidateRole, password?: string, name?: string): Promise<{ token: string; candidate: Candidate }> {
   const pwd = password || 'password123';
   const userCredential = await createUserWithEmailAndPassword(auth, email, pwd);
   const user = userCredential.user;
   const token = await user.getIdToken();
   
-  const candidateData: Candidate = { ...defaultCandidate, id: user.uid, email: user.email || email, role };
+  const candidateData: Candidate = {
+    ...defaultCandidate,
+    id: user.uid,
+    email: user.email || email,
+    role,
+    personalInfo: {
+      ...defaultCandidate.personalInfo,
+      name: name || user.displayName || email.split('@')[0],
+    },
+  };
   await setDoc(doc(db, "candidates", user.uid), candidateData);
   
   return { token, candidate: candidateData };

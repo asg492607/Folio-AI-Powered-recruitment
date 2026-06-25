@@ -37,9 +37,15 @@ export function OnboardingWizard() {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
+  // Save current draft to store + Firestore, then advance
+  function nextStep() {
+    updateCandidate(draft); // persists to Firestore via candidateStore
+    setStep((s) => s + 1);
+  }
+
   function finish() {
-    updateCandidate(draft);
-    toast.success('Profile foundation saved.');
+    updateCandidate(draft); // final save to Firestore
+    toast.success('Profile saved. Let\'s add your portfolio.');
     navigate('/portfolio');
   }
 
@@ -279,7 +285,7 @@ export function OnboardingWizard() {
               <Button 
                 type="button" 
                 className="bg-indigo hover:bg-indigo-600 text-white px-8 rounded-lg"
-                onClick={() => setStep(s => s + 1)}
+                onClick={nextStep}
               >
                 Continue &gt;
               </Button>
