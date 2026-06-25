@@ -40,15 +40,11 @@ class ScrapingService:
         self.scrapers = {
             # ── External API ─────────────────────────────────────────────
             "jobscratcher": JobScratcherScraper(),
-
-            # ── LinkedIn Dedicated (Using JobSpy for Cloudflare Bypass) ──────
-            "linkedin": JobSpyScraper(site_names=["linkedin"]),
-            
-            # ── India-Specific (Massive Enterprise & Tech) ───────────────
-            "naukri": NaukriScraper(),
-            "internshala": InternshalaScraper(),
             
             # The following are temporarily disabled as per user request
+            # "linkedin": JobSpyScraper(site_names=["linkedin"]),
+            # "naukri": NaukriScraper(),
+            # "internshala": InternshalaScraper(),
             # "foundit": FounditScraper(),
             # "hirist": HiristScraper(),
             # "instahyre": InstahyreScraper(),
