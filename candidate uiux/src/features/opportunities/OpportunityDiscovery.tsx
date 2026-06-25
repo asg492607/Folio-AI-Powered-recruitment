@@ -452,10 +452,12 @@ export function OpportunityDiscovery() {
                     btn.innerText = 'Fetching...';
                     btn.disabled = true;
                     try {
-                      const { scraperApi } = await import('../../api/backend');
-                      await scraperApi.triggerScrape();
-                      btn.innerText = 'Done! Refreshing...';
-                      setTimeout(() => window.location.reload(), 2000);
+                      await fetchOpportunities();
+                      btn.innerText = 'Done!';
+                      setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                      }, 2000);
                     } catch (err) {
                       console.error(err);
                       btn.innerText = 'Error (Retry)';
