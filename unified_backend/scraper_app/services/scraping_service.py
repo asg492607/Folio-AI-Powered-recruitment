@@ -75,6 +75,15 @@ class ScrapingService:
             # "the_muse": TheMuseScraper(),
         }
 
+    # Keys from IntelligencePipeline / normalize_job that are NOT in OpportunityCreate schema
+    _RAW_KEYS = {"raw_title", "company_name", "job_description", "job_location",
+                 "site", "date_posted", "created_at", "updated_at"}
+
+    def _to_opp_data(self, enhanced_job: Dict[str, Any]) -> OpportunityCreate:
+        """Strips internal pipeline keys, then constructs a validated OpportunityCreate."""
+        clean = {k: v for k, v in enhanced_job.items() if k not in self._RAW_KEYS}
+        return OpportunityCreate(**clean)
+
     def scrape_source(self, source: str = "behance") -> Dict[str, Any]:
         """Legacy synchronous scrape method for a single source."""
         scraper = self.scrapers.get(source)
@@ -95,16 +104,16 @@ class ScrapingService:
                 enhanced_job = self.pipeline.process_job(normalized)
                 skills = self.classifier.classify_skills(enhanced_job.get("description", ""))
                 enhanced_job["skills"] = list(skills)
-                
-                opp_data = OpportunityCreate(**enhanced_job)
+
+                opp_data = self._to_opp_data(enhanced_job)
                 opportunity, was_created = self.repo.upsert_by_advanced_dedupe(opp_data)
-                
+
                 if opportunity and was_created:
                     created += 1
                 else:
                     updated += 1
             except Exception as e:
-                print(f"[ScrapingService] Failed to save item from {source}: {e}")
+                print(f"[ScrapingService] Failed to save item from {source}: {type(e).__name__}: {e}")
                 continue
 
         return {"source": source, "fetched": len(raw_items), "created": created, "updated": updated}
@@ -151,29 +160,29 @@ class ScrapingService:
                         skills = self.classifier.classify_skills(enhanced_job.get("description", ""))
                         enhanced_job["skills"] = list(skills)
                         
-                        opp_data = OpportunityCreate(**enhanced_job)
+                        opp_data = self._to_opp_data(enhanced_job)
                         opportunity, was_created = self.repo.upsert_by_advanced_dedupe(opp_data)
                         
                         if opportunity and was_created:
                             created += 1
                             # Push to Matchmaking Engine
                             import requests, os
-                            port = os.getenv("PORT", "8000")
+                            port = os.getenv("PORT", "10000")
                             try:
                                 payload = {
                                     "job_id": str(opportunity.id),
                                     "title": opportunity.title,
                                     "company": opportunity.company,
                                     "description": opportunity.description or "",
-                                    "skills": opportunity.technologies or [],
+                                    "skills": [s.name for s in (opportunity.skills or [])],
                                     "tools": [],
-                                    "industry": opportunity.domain or "",
+                                    "industry": str(opportunity.domain.value) if opportunity.domain else "",
                                     "location": opportunity.location or "",
-                                    "job_type": opportunity.work_type or "",
+                                    "job_type": str(opportunity.category.value) if opportunity.category else "",
                                     "metadata": {
-                                        "apply_url": opportunity.url or opportunity.apply_url or "",
-                                        "source": opportunity.source,
-                                        "salary_range": opportunity.salary_range or ""
+                                        "apply_url": opportunity.apply_url or "",
+                                        "source": opportunity.source or "",
+                                        "salary_range": opportunity.salary or ""
                                     }
                                 }
                                 requests.post(f"http://127.0.0.1:{port}/api/portfolio/v1/jobs", json=payload, timeout=5)
@@ -182,7 +191,7 @@ class ScrapingService:
                         else:
                             updated += 1
                     except Exception as e:
-                        print(f"[ScrapingService] Failed to save item from {source_name}: {e}")
+                        print(f"[ScrapingService] Failed to save item from {source_name}: {type(e).__name__}: {e}")
                         continue
                         
                 results.append({

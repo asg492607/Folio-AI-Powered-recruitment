@@ -156,6 +156,12 @@ def normalize_job(raw_data: Dict[str, Any], source: str) -> Dict[str, Any]:
         "source": source,
         "apply_url": raw_data.get("url"),
         "is_active": True,
-        "created_at": datetime.utcnow(),
+        # Preserve raw fields so IntelligencePipeline can still read them
+        "raw_title": raw_data.get("raw_title"),
+        "company_name": raw_data.get("company_name"),
+        "job_description": raw_data.get("job_description"),
+        "job_location": raw_data.get("job_location"),
+        "site": raw_data.get("site"),
+        "date_posted": raw_data.get("date_posted"),
     }
 
