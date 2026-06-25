@@ -34,8 +34,8 @@ export function OpportunityDiscovery() {
   // Search query state
   const [query, setQuery] = useState(params.get('q') ?? '');
 
-  // Checkbox filters state - UI/UX is checked by default as shown in the screenshot
-  const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(['UI/UX']);
+  // Checkbox filters state - Start with NO filters so all jobs are shown
+  const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>([]);
   const [selectedWorkTypes, setSelectedWorkTypes] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   
