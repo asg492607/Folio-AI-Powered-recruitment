@@ -9,37 +9,35 @@ class JobSpyScraper(BaseScraper):
     Only uses LinkedIn and Indeed — ZipRecruiter and Glassdoor block scrapers with 403.
     Searches across major global cities + all major Indian cities.
     """
-    DESIGN_SEARCH_TERMS = list(DESIGN_KEYWORDS)
+    # We use high-level broad search terms instead of 80+ granular terms
+    # to avoid 1400+ API calls and rate-limiting. We pull a large volume per
+    # broad term, and let is_design_related() do the granular filtering.
+    DESIGN_SEARCH_TERMS = [
+        "UI UX Designer", 
+        "Product Designer", 
+        "Graphic Designer", 
+        "Art Director", 
+        "Web Designer",
+        "Motion Graphics"
+    ]
 
     def __init__(
         self,
         site_names: List[str] | None = None,
         locations: List[str] | None = None,
-        results_wanted: int = 150,
+        results_wanted: int = 250,
     ):
         self.site_names = site_names or ["indeed"]
+        # Reduced location matrix for speed and to avoid rate limits
         self.locations = locations or [
-            # India FIRST Priority
-            "India",
             "Remote, India",
+            "India",
             "Bangalore, India",
             "Mumbai, India",
-            "New Delhi, India",
-            "Delhi, India",
-            "Hyderabad, India",
             "Pune, India",
-            "Chennai, India",
-            "Gurgaon, India",
-            "Noida, India",
-            "Kolkata, India",
-            "Ahmedabad, India",
-            "Chandigarh, India",
-            "Jaipur, India",
-            "Indore, India",
-            "Kochi, India",
-            "Coimbatore, India",
+            "Hyderabad, India"
         ]
-        self.results_wanted = 1000
+        self.results_wanted = results_wanted
 
     def scrape(self) -> List[Dict[str, Any]]:
         try:
