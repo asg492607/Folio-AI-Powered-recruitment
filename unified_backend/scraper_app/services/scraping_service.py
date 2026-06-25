@@ -38,7 +38,7 @@ class ScrapingService:
         self.pipeline = IntelligencePipeline()
         self.scrapers = {
             # ── LinkedIn Dedicated (Using JobSpy for Cloudflare Bypass) ──────
-            "linkedin": JobSpyScraper(site_names=["linkedin", "indeed"]),
+            "linkedin": JobSpyScraper(site_names=["linkedin"]),
             
             # ── India-Specific (Massive Enterprise & Tech) ───────────────
             "naukri": NaukriScraper(),
