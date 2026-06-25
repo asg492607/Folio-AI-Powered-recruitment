@@ -27,7 +27,7 @@ class JobSpyScraper(BaseScraper):
         locations: List[str] | None = None,
         results_wanted: int = 250,
     ):
-        self.site_names = site_names or ["indeed"]
+        self.site_names = site_names or ["linkedin", "glassdoor"]
         # Reduced location matrix for speed and to avoid rate limits
         self.locations = locations or [
             "Remote, India",
@@ -76,7 +76,12 @@ class JobSpyScraper(BaseScraper):
                     print(f"[JobSpyScraper] Error scraping '{term}' in '{loc}': {exc}")
                     continue
 
+        if not all_jobs:
+            print("[JobSpyScraper] WARNING: 0 jobs found! JobSpy might be blocked or IP restricted.")
+            return []
+
         design_jobs = [j for j in all_jobs if is_design_related(j)]
+        print(f"[JobSpyScraper] Filtered to {len(design_jobs)} design jobs out of {len(all_jobs)} total.")
         return dedupe_jobs(design_jobs)
 
     def normalize(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:

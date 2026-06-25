@@ -283,6 +283,14 @@ export function PortfolioManager() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(candidate.lastPortfolioReport || null);
   
+  // Sync state if store loads asynchronously from Firestore
+  useEffect(() => {
+    if (candidate.lastPortfolioReport && !reportData) {
+      setReportData(candidate.lastPortfolioReport);
+      setAnalysisDone(true);
+    }
+  }, [candidate.lastPortfolioReport]);
+  
   const [showInputFor, setShowInputFor] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
 
