@@ -49,8 +49,8 @@ export const assessmentApi = {
 // Scraper endpoints
 export const scraperApi = {
   triggerScrape: async () => {
-    // Calling the scraper pod manually
-    return api.post('/api/scraper/api/v1/opportunities/scrape');
+    // Calling the scraper pod manually (background)
+    return api.post('/api/scraper/api/v1/opportunities/force-scrape');
   },
   getOpportunities: async () => {
     return api.get('/api/scraper/api/v1/opportunities');
