@@ -192,6 +192,7 @@ class ScrapingService:
                                         "description": opportunity.description or "",
                                         "skills": [{"name": s.name} for s in (opportunity.skills or [])]
                                     }
+                                }
                                 headers = {"x-api-key": os.getenv("MATCHING_API_KEY", "")}
                                 res = requests.post(f"http://127.0.0.1:{port}/api/portfolio/v1/jobs", json=payload, headers=headers, timeout=5)
                                 res.raise_for_status()
