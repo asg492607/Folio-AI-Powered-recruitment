@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
+import type { CandidateRole } from '../../types';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -17,6 +18,11 @@ const schema = z.object({
 
 type SignUpValues = z.infer<typeof schema>;
 
+// Map UI toggle value → valid CandidateRole
+function toRole(uiRole: 'candidate' | 'recruiter'): CandidateRole {
+  return uiRole === 'recruiter' ? 'junior_professional' : 'design_student';
+}
+
 export function SignUp() {
   const [role, setRole] = useState<'candidate' | 'recruiter'>('candidate');
   const setSession = useAuthStore((state) => state.setSession);
@@ -26,7 +32,7 @@ export function SignUp() {
 
   async function onSubmit(values: SignUpValues) {
     // Create auth account with name — saves to Firestore immediately
-    const session = await signupWithEmail(values.email, role, values.password, values.name);
+    const session = await signupWithEmail(values.email, toRole(role), values.password, values.name);
     setSession(session.token, session.candidate);
     // Also push name into the candidate store so it shows instantly
     updateCandidate({ personalInfo: { ...session.candidate.personalInfo, name: values.name } });
