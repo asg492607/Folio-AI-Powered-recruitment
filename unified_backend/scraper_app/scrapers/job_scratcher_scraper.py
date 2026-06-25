@@ -34,9 +34,8 @@ class JobScratcherScraper(BaseScraper):
                 }
                 all_jobs.append(job)
                 
-            design_jobs = [j for j in all_jobs if is_design_related(j)]
-            print(f"[JobScratcherScraper] Fetched {len(all_jobs)} jobs, {len(design_jobs)} are design related.")
-            return dedupe_jobs(design_jobs)
+            print(f"[JobScratcherScraper] Fetched {len(all_jobs)} jobs from external API.")
+            return dedupe_jobs(all_jobs)
             
         except Exception as exc:
             print(f"[JobScratcherScraper] Error fetching from API: {exc}")

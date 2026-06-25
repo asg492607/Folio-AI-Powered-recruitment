@@ -47,20 +47,20 @@ class ScrapingService:
             # "internshala": InternshalaScraper(),
             # "foundit": FounditScraper(),
             # "hirist": HiristScraper(),
-            # "instahyre": InstahyreScraper(),
+            # "instahhyre": InstahyreScraper(),
             # "cutshort": CutShortScraper(),
             # "jobicy_india": JobicyIndiaScraper(),
             
             # ── Global Giants (Global + India via JobSpy/Custom) ─────────
             # "glassdoor": GlassdoorScraper(),
-            # "jobspy": JobSpyScraper(),
+            "jobspy": JobSpyScraper(),
             
             # ── Public APIs ─────────────────────────────────────────────
-            # "remotive": RemotiveScraper(),
+            "remotive": RemotiveScraper(),
             # "arbeitnow": ArbeitnowScraper(),
-            # "remoteok": RemoteOKScraper(),
-            # "himalayas": HimalayasScraper(),
-            # "ycombinator": YCombinatorScraper(),
+            "remoteok": RemoteOKScraper(),
+            "himalayas": HimalayasScraper(),
+            "ycombinator": YCombinatorScraper(),
             # "uxjobsboard": UXJobsBoardScraper(),
             
             # ── Design-Specific ─────────────────────────────────────────

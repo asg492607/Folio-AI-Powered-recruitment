@@ -1,0 +1,39 @@
+# ── Secrets & credentials (NEVER commit these) ──────────────────────────────
+unified_backend/.env
+unified_backend/service-account.json
+*.env
+*.pem
+*.key
+
+# ── Generated data / one-time scripts ────────────────────────────────────────
+openapi.json
+portfolio.json
+report.json
+scraped.json
+seed_jobs.py
+seed_jobs.mjs
+seed_jobs.ps1
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# ── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+dist/
+.cache/
+*.local
+
+# ── OS & Editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
