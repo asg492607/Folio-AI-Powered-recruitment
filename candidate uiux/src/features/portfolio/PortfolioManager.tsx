@@ -55,7 +55,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
             clearInterval(stepInterval);
             setCompletedSteps([0, 1, 2, 3]);
             setTimeout(() => {
-              onDone(res.data.report);
+              onDone(res.data.results);
             }, 1000);
           } else if (res.data.status === 'failed') {
             clearInterval(pollInterval);
