@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
@@ -20,9 +20,17 @@ const locationTypesList = [
 
 export function OpportunityDiscovery() {
   const opportunities = useOpportunityStore((state) => state.opportunities);
+  const fetchOpportunities = useOpportunityStore((state) => state.fetchOpportunities);
   const savedIds = useOpportunityStore((state) => state.savedIds);
   const [params, setParams] = useSearchParams();
   
+  // Auto-fetch jobs on initial load if none exist
+  useEffect(() => {
+    if (opportunities.length === 0) {
+      fetchOpportunities();
+    }
+  }, [opportunities.length, fetchOpportunities]);
+
   // Search query state
   const [query, setQuery] = useState(params.get('q') ?? '');
 
