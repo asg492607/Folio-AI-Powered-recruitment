@@ -29,15 +29,11 @@ export function Dashboard() {
       <div className="p-8 pb-20 animate-slide-up">
         {/* Greeting Section */}
         <div className="mb-8">
-          <h1 
-            className="font-serif text-[32px] tracking-tight text-navy mb-1.5 cursor-pointer"
-            onDoubleClick={seedJobsToFirestore}
-            title="Double click to seed jobs to Firebase"
-          >
+          <h1 className="font-serif text-[32px] tracking-tight text-navy mb-1.5">
             Good morning, {firstName}.
           </h1>
           <p className="text-navy/60 font-sans text-base">
-            Your portfolio intelligence is active. 0 new matches since yesterday.
+            Your portfolio intelligence is active. {opportunities.length} opportunities available.
           </p>
         </div>
 
