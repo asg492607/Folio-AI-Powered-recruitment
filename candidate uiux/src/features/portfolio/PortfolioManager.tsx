@@ -58,10 +58,11 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
             setTimeout(() => {
               onDone(res.data.results);
             }, 1000);
-          } else if (res.data.status === 'failed') {
+          } else if (res.data.status === 'failed' || res.data.status === 'error') {
             clearInterval(pollInterval);
             clearInterval(stepInterval);
-            alert('Analysis failed. Please try a different URL.');
+            console.error('Analysis status:', res.data.status, res.data);
+            alert('Analysis failed. Please try a different URL or try again.');
             onDone(null);
           }
         } catch (e) {
