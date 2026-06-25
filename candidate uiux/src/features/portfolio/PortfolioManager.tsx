@@ -3,6 +3,7 @@ import { Sparkles, CheckCircle2, Cpu } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { portfolioApi } from '../../api/backend';
 import { useCandidateStore } from '../../store/candidateStore';
+import { useNotificationStore } from '../../store/notificationStore';
 
 // ── Analysis loading steps ────────────────────────────────────────────────────
 const STEPS = [
@@ -308,21 +309,22 @@ export function PortfolioManager() {
     }
   }
 
-  const updateCandidate = useCandidateStore(state => state.updateCandidate);
+  const applyPortfolioReport = useCandidateStore(state => state.applyPortfolioReport);
+  const pushNotification = useNotificationStore(state => state.pushNotification);
 
   function handleAnalysisDone(data: any) {
     setIsAnalyzing(false);
     setAnalysisDone(true);
     if (data) {
       setReportData(data);
-      
-      const designTools = data.skills?.design_tools || [];
-      const processes = data.skills?.methodologies_and_processes || [];
-      const combinedSkills = [...designTools, ...processes];
-      
-      if (combinedSkills.length > 0) {
-        updateCandidate({ skills: combinedSkills });
-      }
+      // Auto-fill the real profile from the AI report
+      applyPortfolioReport(data);
+      // Push a real notification
+      pushNotification({
+        type: 'profile_suggestion',
+        message: 'Portfolio analysis complete! Your profile has been auto-filled with extracted skills and projects.',
+        linkTo: '/profile',
+      });
     }
   }
 

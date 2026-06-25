@@ -12,6 +12,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useOpportunityStore } from '../store/opportunityStore';
 import { useCandidateStore } from '../store/candidateStore';
+import { useNotificationStore } from '../store/notificationStore';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,12 +28,14 @@ export function AppLayout() {
   const logout = useAuthStore((state) => state.logout);
   const subscribeToOpportunities = useOpportunityStore((state) => state.subscribeToOpportunities);
   const initializeAuth = useCandidateStore((state) => state.initializeAuth);
+  const initNotifications = useNotificationStore((state) => state.initializeAuth);
 
   useEffect(() => {
     initializeAuth();
+    initNotifications();
     const unsubscribe = subscribeToOpportunities();
     return () => unsubscribe();
-  }, [subscribeToOpportunities, initializeAuth]);
+  }, [subscribeToOpportunities, initializeAuth, initNotifications]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-chalk selection:bg-indigo-100 selection:text-navy">
