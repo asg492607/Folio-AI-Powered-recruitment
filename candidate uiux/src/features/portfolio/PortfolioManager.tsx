@@ -276,8 +276,12 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
 // ── Main PortfolioManager ─────────────────────────────────────────────────────
 export function PortfolioManager() {
   const candidate = useCandidateStore(state => state.candidate);
+  const updateCandidate = useCandidateStore(state => state.updateCandidate);
   const [sources, setSources] = useState<any[]>([]);
-  const [pdfUploaded, setPdfUploaded] = useState(false);
+  
+  // Check if a PDF has been added to the candidate's portfolio links
+  const pdfUploaded = candidate.portfolioLinks.some(link => link.type === 'pdf');
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisDone, setAnalysisDone] = useState(!!candidate.lastPortfolioReport);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -298,7 +302,12 @@ export function PortfolioManager() {
 
   function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
-      setPdfUploaded(true);
+      const fileName = e.target.files[0].name;
+      // Add it to the candidate store so it persists across page navigations (replace existing pdf if any)
+      const otherLinks = candidate.portfolioLinks.filter(l => l.type !== 'pdf');
+      updateCandidate({
+        portfolioLinks: [...otherLinks, { type: 'pdf', url: fileName }]
+      });
     }
   }
 
