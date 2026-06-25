@@ -7,7 +7,7 @@ import { seedJobsToFirestore } from '../../utils/seedJobs';
 export function Dashboard() {
   const candidate = useCandidateStore((state) => state.candidate);
   const opportunities = useOpportunityStore((state) => state.opportunities);
-  const firstName = candidate.personalInfo.name.split(' ')[0] || 'Avni';
+  const firstName = candidate.personalInfo.name.split(' ')[0] || 'Guest';
 
   return (
     <div className="flex min-h-screen flex-col bg-chalk">

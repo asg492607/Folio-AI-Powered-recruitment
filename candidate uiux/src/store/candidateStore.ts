@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Candidate } from '../types';
 import { calculateProfileCompletion } from '../utils/profile';
 import { trackEvent } from '../utils/analytics';
@@ -50,23 +51,25 @@ async function persistToFirestore(userId: string, data: Partial<Candidate>) {
   }
 }
 
-export const useCandidateStore = create<CandidateState>((set, get) => ({
-  candidate: defaultCandidate,
-  userId: null,
+export const useCandidateStore = create<CandidateState>()(
+  persist(
+    (set, get) => ({
+      candidate: defaultCandidate,
+      userId: null,
 
-  updateCandidate: (patch) =>
-    set((state) => {
-      const next = { ...state.candidate, ...patch };
-      next.profileCompletionPercent = calculateProfileCompletion(next);
-      trackEvent('profile_completion_updated', { percent: next.profileCompletionPercent });
+      updateCandidate: (patch) =>
+        set((state) => {
+          const next = { ...state.candidate, ...patch };
+          next.profileCompletionPercent = calculateProfileCompletion(next);
+          trackEvent('profile_completion_updated', { percent: next.profileCompletionPercent });
 
-      // Persist to Firestore if logged in
-      if (state.userId) {
-        persistToFirestore(state.userId, { ...patch, profileCompletionPercent: next.profileCompletionPercent });
-      }
+          // Persist to Firestore if logged in
+          if (state.userId) {
+            persistToFirestore(state.userId, { ...patch, profileCompletionPercent: next.profileCompletionPercent });
+          }
 
-      return { candidate: next };
-    }),
+          return { candidate: next };
+        }),
 
   // Maps AI portfolio report fields into the candidate profile and saves to Firestore
   applyPortfolioReport: (reportData: any) => {
@@ -181,4 +184,4 @@ export const useCandidateStore = create<CandidateState>((set, get) => ({
       }
     });
   }
-}));
+}), { name: 'candidate-storage' }));
