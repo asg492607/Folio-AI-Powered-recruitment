@@ -28,6 +28,8 @@ from app.scrapers.foundit import FounditScraper
 from app.scrapers.hirist import HiristScraper
 from app.scrapers.glassdoor import GlassdoorScraper
 from app.scrapers.jobspy_scraper import JobSpyScraper
+from app.scrapers.internshala_scraper import InternshalaScraper
+from app.scrapers.naukri_scraper import NaukriScraper
 
 class ScrapingService:
     def __init__(self, db: Session):
@@ -40,7 +42,7 @@ class ScrapingService:
             
             # ── India-Specific (Massive Enterprise & Tech) ───────────────
             "naukri": NaukriScraper(),
-            "internshala": IntershalaScraper(),
+            "internshala": InternshalaScraper(),
             
             # The following are temporarily disabled as per user request
             # "foundit": FounditScraper(),
