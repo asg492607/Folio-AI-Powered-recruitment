@@ -126,13 +126,18 @@ export function ApplicationForm() {
             </ul>
           </div>
 
-          <div className="mt-12 flex items-center justify-center gap-8">
-            <Button className="rounded-xl bg-[#6366f1] px-8 py-3.5 text-[15px] font-semibold text-white hover:bg-[#4f46e5]" onClick={() => navigate('/applications')}>
-              Track application
+          <div className="mt-12 flex flex-col items-center justify-center gap-4">
+            <Button className="rounded-xl bg-navy px-10 py-4 text-[16px] font-semibold text-white hover:bg-navy/90 shadow-soft" onClick={() => navigate('/assessments', { state: { jobId: activeOpportunity.id, companyName: activeOpportunity.companyName } })}>
+              Take AI Assessment
             </Button>
-            <button onClick={() => navigate('/opportunities')} className="text-[16px] font-medium text-navy hover:text-indigo transition-colors">
-              Find more roles
-            </button>
+            <div className="flex gap-6 mt-4">
+              <button onClick={() => navigate('/applications')} className="text-[15px] font-medium text-navy/70 hover:text-indigo transition-colors">
+                Track application
+              </button>
+              <button onClick={() => navigate('/opportunities')} className="text-[15px] font-medium text-navy/70 hover:text-indigo transition-colors">
+                Find more roles
+              </button>
+            </div>
           </div>
         </div>
       </div>

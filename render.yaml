@@ -11,8 +11,6 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12
-      - key: ENABLE_BACKGROUND_SCRAPING
-        value: "true"
       # The credentials JSON string can be pasted into the Render dashboard
       - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
         sync: false

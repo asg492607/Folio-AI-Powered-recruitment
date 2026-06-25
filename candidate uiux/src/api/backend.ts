@@ -54,12 +54,26 @@ const assessmentAxios = axios.create({
 
 // Assessment endpoints
 export const assessmentApi = {
-  startAssessment: async (candidateId: string, topic: string) => {
-    return assessmentAxios.post('/api/assessment/apply', { candidateId, topic });
+  applyToJob: async (jobId: number) => {
+    return assessmentAxios.post('/api/assessment/apply', { job_id: jobId });
   },
-  submitAnswer: async (assessmentId: string, answer: string) => {
-    return assessmentAxios.post(`/api/quiz/submit`, { candidate_id: assessmentId, question: '', selected_option: answer, score_assigned: 0 });
+  getQuizQuestion: async (candidateId: string) => {
+    return assessmentAxios.get(`/api/quiz/question?candidate_id=${candidateId}`);
   },
+  submitAnswer: async (candidateId: string, question: string, answer: string, score: number) => {
+    return assessmentAxios.post('/api/quiz/submit', {
+      candidate_id: candidateId,
+      question: question,
+      selected_option: answer,
+      score_assigned: score
+    });
+  },
+  triggerAnalysis: async (candidateId: string) => {
+    return assessmentAxios.post(`/api/assessment/trigger_analysis?candidate_id=${candidateId}`);
+  },
+  getReport: async (candidateId: string) => {
+    return assessmentAxios.get(`/api/assessment/report/${candidateId}`);
+  }
 };
 
 // Scraper endpoints

@@ -1,6 +1,7 @@
-import { Bookmark, Sparkles } from 'lucide-react';
+import { Bookmark, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useOpportunityStore } from '../../store/opportunityStore';
+import { useApplicationStore } from '../../store/applicationStore';
 import type { Opportunity } from '../../types';
 import { trackEvent } from '../../utils/analytics';
 
@@ -8,6 +9,9 @@ export function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
   const savedIds = useOpportunityStore((state) => state.savedIds);
   const toggleSaved = useOpportunityStore((state) => state.toggleSaved);
   const saved = savedIds.includes(opportunity.id);
+
+  const applications = useApplicationStore((state) => state.applications);
+  const applied = applications.some((app) => app.opportunityId === opportunity.id);
 
   const initial = opportunity.companyName.charAt(0) || 'C';
 
@@ -19,22 +23,29 @@ export function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
           {initial}
         </div>
         
-        {/* Save Bookmark Button */}
-        <button
-          className={`p-1.5 rounded-full transition-colors ${
-            saved
-              ? 'text-indigo hover:text-indigo-600'
-              : 'text-navy/35 hover:text-navy'
-          }`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleSaved(opportunity.id);
-          }}
-          aria-label="Save opportunity"
-        >
-          <Bookmark className="h-5 w-5" fill={saved ? 'currentColor' : 'none'} strokeWidth={1.5} />
-        </button>
+        {/* Save Bookmark Button or Applied Badge */}
+        {applied ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-[#ecfdf5] px-2.5 py-1 text-[11px] font-bold tracking-wider text-[#059669] uppercase border border-[#a7f3d0]">
+            <CheckCircle2 className="h-3 w-3" strokeWidth={3} />
+            Applied
+          </span>
+        ) : (
+          <button
+            className={`p-1.5 rounded-full transition-colors ${
+              saved
+                ? 'text-indigo hover:text-indigo-600'
+                : 'text-navy/35 hover:text-navy'
+            }`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleSaved(opportunity.id);
+            }}
+            aria-label="Save opportunity"
+          >
+            <Bookmark className="h-5 w-5" fill={saved ? 'currentColor' : 'none'} strokeWidth={1.5} />
+          </button>
+        )}
       </div>
 
       <Link
