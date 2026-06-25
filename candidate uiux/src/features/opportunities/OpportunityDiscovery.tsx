@@ -432,9 +432,33 @@ export function OpportunityDiscovery() {
 
             {/* Opportunities Cards Grid */}
             {filtered.length === 0 ? (
-              <EmptyState title="No matching opportunities">
-                Adjust filters or save roles to see them here.
-              </EmptyState>
+              <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-chalk-200 rounded-xl bg-chalk-50/50">
+                <h3 className="text-[17px] font-bold text-navy mb-2">No matching opportunities</h3>
+                <p className="text-[14px] text-navy/60 mb-6 max-w-sm">
+                  Adjust your filters, or fetch the latest roles from our real-time sources to see them here.
+                </p>
+                <button
+                  onClick={async (e) => {
+                    const btn = e.currentTarget;
+                    const originalText = btn.innerText;
+                    btn.innerText = 'Fetching...';
+                    btn.disabled = true;
+                    try {
+                      const { scraperApi } = await import('../../api/backend');
+                      await scraperApi.triggerScrape();
+                      btn.innerText = 'Done! Refreshing...';
+                      setTimeout(() => window.location.reload(), 2000);
+                    } catch (err) {
+                      console.error(err);
+                      btn.innerText = 'Error (Retry)';
+                      btn.disabled = false;
+                    }
+                  }}
+                  className="rounded-lg bg-indigo px-5 py-2.5 text-[13px] font-bold text-white shadow-soft hover:bg-indigo-600 transition-colors disabled:opacity-50"
+                >
+                  Fetch Latest Jobs
+                </button>
+              </div>
             ) : (
               <div
                 className={`grid gap-6 ${
