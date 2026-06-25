@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Opportunity } from '../types';
 import { trackEvent } from '../utils/analytics';
 import { fetchOpportunities } from '../api/opportunities';
@@ -15,7 +16,9 @@ interface OpportunityState {
   subscribeToOpportunities: () => () => void;
 }
 
-export const useOpportunityStore = create<OpportunityState>((set) => ({
+export const useOpportunityStore = create<OpportunityState>()(
+  persist(
+    (set) => ({
   opportunities: [],
   savedIds: [],
   loading: false,
@@ -81,4 +84,4 @@ export const useOpportunityStore = create<OpportunityState>((set) => ({
 
     return () => clearInterval(interval);
   }
-}));
+}), { name: 'opportunity-storage' }));
