@@ -12,23 +12,31 @@ const api = axios.create({
   },
 });
 
+// External Portfolio System API
+const portfolioAxios = axios.create({
+  baseURL: 'https://portfolio-intelligencesystem.onrender.com',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Matchmaking & Portfolio endpoints
 export const portfolioApi = {
   analyzePdf: async (formData: FormData) => {
-    return api.post('/api/portfolio/api/v1/analyze/pdf', formData, {
+    return portfolioAxios.post('/api/v1/analyze/pdf', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
   },
   analyzeUrl: async (url: string) => {
-    return api.post('/api/portfolio/api/v1/analyze/url', { url });
+    return portfolioAxios.post('/api/v1/analyze/url', { url });
   },
   getReport: async (jobId: string) => {
-    return api.get(`/api/portfolio/api/v1/report/${jobId}`);
+    return portfolioAxios.get(`/api/v1/report/${jobId}`);
   },
   matchJobs: async (portfolio_text: string, skills: string[], top_k: number = 25) => {
-    return api.post('/api/portfolio/v1/match', {
+    return portfolioAxios.post('/v1/match', {
       portfolio_text,
       skills,
       top_k
