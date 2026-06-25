@@ -1,13 +1,26 @@
-import { Bookmark, Sparkles, Plus, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Bookmark, Sparkles, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useCandidateStore } from '../../store/candidateStore';
 import { useOpportunityStore } from '../../store/opportunityStore';
+import { useApplicationStore } from '../../store/applicationStore';
 import { PageHeader } from '../../components/PageHeader';
-import { seedJobsToFirestore } from '../../utils/seedJobs';
 
 export function Dashboard() {
   const candidate = useCandidateStore((state) => state.candidate);
   const opportunities = useOpportunityStore((state) => state.opportunities);
+  const applications = useApplicationStore((state) => state.applications);
+  const savedIds = useOpportunityStore((state) => state.savedIds);
+  const toggleSaved = useOpportunityStore((state) => state.toggleSaved);
   const firstName = candidate.personalInfo.name.split(' ')[0] || 'Guest';
+
+  // Top 4 by real match score
+  const topMatches = [...opportunities]
+    .sort((a, b) => (b.matchPercentage ?? 0) - (a.matchPercentage ?? 0))
+    .slice(0, 4);
+
+  const appliedCount = applications.length;
+  const underReviewCount = applications.filter(a => ['under_review', 'viewed'].includes(a.status)).length;
+  const shortlistedCount = applications.filter(a => ['shortlisted', 'interview_scheduled', 'selected'].includes(a.status)).length;
 
   return (
     <div className="flex min-h-screen flex-col bg-chalk">
@@ -32,17 +45,17 @@ export function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200">
             <p className="text-xs font-mono tracking-widest text-navy/40 uppercase mb-2">Applied</p>
-            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">0</p>
+            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">{appliedCount}</p>
             <p className="text-sm text-navy/60">applications</p>
           </div>
           <div className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200">
             <p className="text-xs font-mono tracking-widest text-navy/40 uppercase mb-2">Under review</p>
-            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">0</p>
+            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">{underReviewCount}</p>
             <p className="text-sm text-navy/60">active</p>
           </div>
           <div className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200">
             <p className="text-xs font-mono tracking-widest text-navy/40 uppercase mb-2">Shortlisted</p>
-            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">0</p>
+            <p className="font-sans text-4xl font-bold text-navy leading-none mb-2">{shortlistedCount}</p>
             <p className="text-sm text-navy/60">this week</p>
           </div>
         </div>
@@ -68,38 +81,60 @@ export function Dashboard() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-medium text-navy">Recommended for you</h2>
-              <button className="text-sm font-medium text-indigo hover:text-indigo-700 flex items-center gap-1">
-                View all <span className="text-lg leading-none">›</span>
-              </button>
+              <Link to="/opportunities" className="text-sm font-medium text-indigo hover:text-indigo-700 flex items-center gap-1">
+                View all <ChevronRight className="h-4 w-4" />
+              </Link>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {opportunities?.slice(0, 4).map((job: any) => (
-                <div key={job.id} className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200 flex flex-col hover:border-indigo-200 transition-colors cursor-pointer group">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white font-medium`}>
-                      {job.company_name ? job.company_name.charAt(0).toUpperCase() : 'U'}
+              {topMatches.length > 0 ? topMatches.map((job) => {
+                const isSaved = savedIds.includes(job.id);
+                const isApplied = applications.some(a => a.opportunityId === job.id);
+                const initial = (job.companyName || '?').charAt(0).toUpperCase();
+                const workLabel = job.workType === 'full_time' ? 'Full-time'
+                  : job.workType === 'internship' ? 'Internship'
+                  : job.workType === 'freelance' ? 'Freelance' : job.workType;
+
+                return (
+                  <Link
+                    key={job.id}
+                    to={`/opportunities/${job.id}`}
+                    className="rounded-xl bg-white p-6 shadow-sm border border-chalk-200 flex flex-col hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy text-white font-bold text-sm">
+                        {initial}
+                      </div>
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSaved(job.id); }}
+                        className={`transition-colors ${isSaved ? 'text-indigo' : 'text-chalk-400 hover:text-indigo'}`}
+                        aria-label="Save"
+                      >
+                        <Bookmark className="h-5 w-5" fill={isSaved ? 'currentColor' : 'none'} strokeWidth={1.5} />
+                      </button>
                     </div>
-                    <button className="text-chalk-400 hover:text-indigo transition-colors">
-                      <Bookmark className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <p className="text-sm text-navy/60 mb-0.5">{job.company_name}</p>
-                  <h3 className="font-semibold text-navy text-lg mb-4 group-hover:text-indigo transition-colors line-clamp-1" title={job.title}>{job.title}</h3>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    <span className="rounded-full border border-chalk-200 px-3 py-1 text-xs text-navy/70">{job.work_type}</span>
-                    <span className="rounded-full border border-chalk-200 px-3 py-1 text-xs text-navy/70">{job.location}</span>
-                  </div>
-                  <div className="mt-auto">
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo">
-                      <Sparkles className="h-3 w-3" /> {job.match_score ? `${Math.round(job.match_score * 100)}% MATCH` : '85% MATCH'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {(!opportunities || opportunities.length === 0) && (
-                <div className="col-span-2 text-center py-8 text-navy/50">
-                  <p>No recommendations available yet.</p>
+                    <p className="text-sm text-navy/60 mb-0.5 truncate">{job.companyName}</p>
+                    <h3 className="font-semibold text-navy text-base mb-3 group-hover:text-indigo transition-colors line-clamp-1">{job.title}</h3>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="rounded-full border border-chalk-200 px-3 py-1 text-xs text-navy/70">{workLabel}</span>
+                      <span className="rounded-full border border-chalk-200 px-3 py-1 text-xs text-navy/70 truncate max-w-[120px]">{job.location || job.locationType}</span>
+                    </div>
+                    <div className="mt-auto flex items-center justify-between">
+                      {job.matchPercentage ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo">
+                          <Sparkles className="h-3 w-3" /> {job.matchPercentage}% MATCH
+                        </span>
+                      ) : <span />}
+                      {isApplied && (
+                        <span className="text-xs font-semibold text-[#059669] bg-[#ecfdf5] px-2.5 py-1 rounded-full border border-[#a7f3d0]">Applied</span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              }) : (
+                <div className="col-span-2 text-center py-12 text-navy/50">
+                  <p className="mb-2">No matches yet.</p>
+                  <Link to="/opportunities" className="text-sm text-indigo hover:underline">Browse all opportunities →</Link>
                 </div>
               )}
             </div>
