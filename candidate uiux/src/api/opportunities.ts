@@ -5,10 +5,24 @@ export async function fetchOpportunities(skills?: string[]): Promise<Opportunity
   try {
     let resData: any[] = [];
     
-    // Bypass our backend entirely and use the job-scratcher link directly as requested
-    const axios = (await import('axios')).default;
-    const res = await axios.get('https://job-scratcher.onrender.com/api/v1/opportunities');
-    resData = res.data;
+    if (skills && skills.length > 0) {
+      // Use AI Matchmaking Engine
+      const matchRes = await portfolioApi.matchJobs("Candidate portfolio skills", skills, 25);
+      resData = matchRes.data.results.map((r: any) => {
+        const item = r.metadata || {};
+        return {
+          ...item,
+          id: r.job_id,
+          title: r.title,
+          company: r.company,
+          matchPercentage: Math.round(r.final_score * 100),
+        };
+      });
+    } else {
+      // Fallback to basic scraper fetching
+      const res = await scraperApi.getOpportunities();
+      resData = res.data;
+    }
     
     return resData.map((item: any) => ({
       id: item.id || Math.random().toString(),

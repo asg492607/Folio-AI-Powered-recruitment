@@ -36,7 +36,7 @@ export const portfolioApi = {
     return portfolioAxios.get(`/api/v1/report/${jobId}`);
   },
   matchJobs: async (portfolio_text: string, skills: string[], top_k: number = 25) => {
-    return portfolioAxios.post('/v1/match', {
+    return api.post('/api/portfolio/v1/match', {
       portfolio_text,
       skills,
       top_k
