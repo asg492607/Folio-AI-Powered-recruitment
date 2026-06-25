@@ -275,12 +275,13 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
 
 // ── Main PortfolioManager ─────────────────────────────────────────────────────
 export function PortfolioManager() {
+  const candidate = useCandidateStore(state => state.candidate);
   const [sources, setSources] = useState<any[]>([]);
   const [pdfUploaded, setPdfUploaded] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisDone, setAnalysisDone] = useState(false);
+  const [analysisDone, setAnalysisDone] = useState(!!candidate.lastPortfolioReport);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<any>(candidate.lastPortfolioReport || null);
   
   const [showInputFor, setShowInputFor] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');

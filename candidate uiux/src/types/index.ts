@@ -30,6 +30,7 @@ export interface Candidate {
   achievements: string[];
   portfolioLinks: { type: 'behance' | 'dribbble' | 'website' | 'pdf'; url: string }[];
   profileCompletionPercent: number;
+  lastPortfolioReport?: any;
 }
 
 export interface PortfolioItem {

@@ -90,10 +90,13 @@ export const useCandidateStore = create<CandidateState>((set, get) => ({
 
     const patch: Partial<Candidate> = {};
 
-    // Auto-fill name if not set and AI found one
-    if (reportData.full_name && !existing.personalInfo?.name) {
+    // Auto-fill name if not set or if it's the default "Candidate"
+    if (reportData.full_name && (!existing.personalInfo?.name || existing.personalInfo.name === 'Candidate')) {
       patch.personalInfo = { ...(existing.personalInfo || {}), name: reportData.full_name };
     }
+
+    // Save the report itself so it doesn't disappear on navigation
+    patch.lastPortfolioReport = reportData;
 
     // Auto-fill bio/aboutMe if not set
     if (reportData.summary && !existing.aboutMe) {

@@ -182,7 +182,13 @@ class ScrapingService:
                                     "metadata": {
                                         "apply_url": opportunity.apply_url or "",
                                         "source": opportunity.source or "",
-                                        "salary_range": opportunity.salary or ""
+                                        "salary_range": opportunity.salary or "",
+                                        "category": str(opportunity.category.value) if opportunity.category else "",
+                                        "domain": str(opportunity.domain.value) if opportunity.domain else "",
+                                        "location": opportunity.location or "",
+                                        "remote_status": str(opportunity.remote_status.value) if opportunity.remote_status else "",
+                                        "description": opportunity.description or "",
+                                        "skills": [{"name": s.name} for s in (opportunity.skills or [])]
                                     }
                                 }
                                 requests.post(f"http://127.0.0.1:{port}/api/portfolio/v1/jobs", json=payload, timeout=5)
