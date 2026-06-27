@@ -27,7 +27,7 @@ def get_scraping_service(db: Session = Depends(get_db)):
     return ScrapingService(db)
 
 @router.post("/force-scrape")
-def force_scrape(background_tasks: BackgroundTasks):
+def force_scrape(background_tasks: BackgroundTasks, api_key: str = Depends(get_api_key)):
     """Triggers a background scrape cycle."""
     def run_scrape():
         bg_db = SessionLocal()

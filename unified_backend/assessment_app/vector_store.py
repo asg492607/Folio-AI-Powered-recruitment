@@ -17,7 +17,9 @@ def get_qdrant_client():
     try:
         client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, timeout=2.0)
         return client
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.warning(f"Failed to connect to Qdrant at {QDRANT_HOST}:{QDRANT_PORT} - {e}")
         return None
 
 

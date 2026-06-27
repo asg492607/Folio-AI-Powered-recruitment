@@ -14,12 +14,22 @@ app = FastAPI(title="Unified Ecosystem API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,https://folio-recruitment.onrender.com").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+from fastapi.responses import JSONResponse
+import logging
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logging.error(f"Unhandled Exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error. Please try again later."},
+    )
 @app.get("/")
 @app.head("/")
 def read_root():

@@ -80,7 +80,11 @@ export const assessmentApi = {
 export const scraperApi = {
   triggerScrape: async () => {
     // Calling the scraper pod manually (background)
-    return api.post('/api/scraper/api/v1/opportunities/force-scrape');
+    return api.post('/api/scraper/api/v1/opportunities/force-scrape', {}, {
+      headers: {
+        'X-API-Key': 'opportunity_intelligence_admin_key_2026'
+      }
+    });
   },
   getOpportunities: async () => {
     return api.get('/api/scraper/api/v1/opportunities');

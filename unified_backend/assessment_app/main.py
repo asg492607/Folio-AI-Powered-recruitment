@@ -20,7 +20,7 @@ app = FastAPI(title="Assessment & Intelligence Pod API")
 # Setup CORS for frontend to interact from local files/browsers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,https://folio-recruitment.onrender.com").split(","),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
