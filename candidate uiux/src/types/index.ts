@@ -84,7 +84,7 @@ export interface Application {
 export interface Notification {
   id: string;
   candidateId: string;
-  type: 'application_update' | 'interview_update' | 'new_opportunity' | 'profile_suggestion';
+  type: 'application_update' | 'interview_update' | 'new_opportunity' | 'profile_suggestion' | 'match_alert';
   message: string;
   read: boolean;
   createdAt: string;
