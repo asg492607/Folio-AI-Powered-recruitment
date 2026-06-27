@@ -67,7 +67,7 @@ function mapApiItem(item: any, skills: string[]): Opportunity {
     const ratio = matches / skills.length;
     calculatedMatch = Math.round(40 + ratio * 58);
   } else {
-    calculatedMatch = item.matchPercentage || Math.floor(Math.random() * 30 + 55);
+    calculatedMatch = item.matchPercentage || 0;
   }
 
   const companySlug = (item.company || item.companyName || '').replace(/\s+/g, '').toLowerCase();
@@ -141,6 +141,12 @@ export async function fetchOpportunities(skills?: string[]): Promise<Opportunity
     }
   } catch (err) {
     console.warn('[opportunities] Live API unreachable, falling back to Firestore cache:', err);
+    import('../store/notificationStore').then(({ useNotificationStore }) => {
+      useNotificationStore.getState().pushNotification({
+        type: 'match_alert',
+        message: 'Live job feed unavailable. Displaying cached jobs from database.',
+      });
+    });
   }
 
   // ── Step 3: Fall back to Firestore permanent cache ──────────────────────────

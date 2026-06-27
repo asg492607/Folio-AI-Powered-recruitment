@@ -48,8 +48,21 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
         }
       }, 2000);
 
+      let pollCount = 0;
+      const MAX_POLLS = 20;
+
       const pollInterval = setInterval(async () => {
         try {
+          pollCount++;
+          if (pollCount > MAX_POLLS) {
+            clearInterval(pollInterval);
+            clearInterval(stepInterval);
+            console.error('Polling timeout reached.');
+            alert('Analysis timed out. Please try again later.');
+            onDone(null);
+            return;
+          }
+
           const res = await portfolioApi.getReport(jobId);
           if (res.data.status === 'completed') {
             clearInterval(pollInterval);

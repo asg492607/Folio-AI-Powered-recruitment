@@ -19,8 +19,15 @@ export function AssessmentView() {
   const candidate = useCandidateStore(s => s.candidate);
   const candidateId = candidate.id || 'candidate_123';
   
-  // Default job ID to 1 if not passed from routing (for testing)
-  const jobId = parseInt(state?.jobId || '1') || 1;
+  const jobId = parseInt(state?.jobId || '0') || 0;
+
+  useEffect(() => {
+    if (!jobId) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [jobId, navigate]);
+
+  if (!jobId) return null;
 
   const [isStarted, setIsStarted] = useState(false);
   const [showReport, setShowReport] = useState(false);
