@@ -61,10 +61,13 @@ export function PageHeader({ title }: PageHeaderProps) {
         </button>
 
         {/* Recruiter View Button */}
-        <button className="flex items-center gap-2 rounded-lg border border-chalk-200 bg-white px-3 py-1.5 text-sm font-medium text-navy/70 hover:bg-chalk-50 hover:text-navy transition-colors shadow-soft">
+        <a 
+          href="/recruiter"
+          className="flex items-center gap-2 rounded-lg border border-chalk-200 bg-white px-3 py-1.5 text-sm font-medium text-navy/70 hover:bg-chalk-50 hover:text-navy transition-colors shadow-soft"
+        >
           <Users className="h-4 w-4" />
           Recruiter view
-        </button>
+        </a>
 
         {/* Notification Bell + Dropdown */}
         <div className="relative ml-2" ref={dropdownRef}>
