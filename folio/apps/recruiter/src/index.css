@@ -1,0 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply antialiased;
+    background: #F2EFEA;
+    color: #151633;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+}
+
+@layer components {
+  /* Typography Scale */
+  .folio-page-title {
+    font-family: "DM Serif Display", serif;
+    font-weight: 400;
+    font-size: 56px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  @media (max-width: 768px) {
+    .folio-page-title {
+      font-size: 40px;
+    }
+  }
+
+  .folio-section-title {
+    font-family: "DM Serif Display", serif;
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: -0.02em;
+  }
+
+  .folio-card-title {
+    @apply font-sans font-bold text-stone-900;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  .folio-body {
+    font-family: "DM Sans", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .folio-meta {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  .folio-title {
+    font-family: "DM Serif Display", serif;
+  }
+
+  .folio-label {
+    font-family: "Space Mono", monospace;
+  }
+
+  .folio-heading {
+    font-family: "DM Serif Display", serif;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+  }
+
+  .folio-mono {
+    font-family: "Space Mono", monospace;
+  }
+
+  /* Depth System */
+  .panel {
+    background-color: #FCFBF9;
+    border: 1px solid rgba(21, 22, 51, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(21, 22, 51, 0.04), 0 8px 24px rgba(21, 22, 51, 0.04);
+  }
+
+  .metric-card {
+    background-color: white;
+    border: 1px solid rgba(21, 22, 51, 0.08);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(21, 22, 51, 0.04), 0 8px 24px rgba(21, 22, 51, 0.04);
+  }
+
+  .button-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-all duration-150 rounded-xl select-none active:scale-[0.98] hover:scale-[1.01] cursor-pointer;
+    background-color: #5B4FE9;
+  }
+  .button-primary:hover {
+    background-color: #FF6B35;
+  }
+
+  .button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-[#ECE8E2] bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-brand-navy transition-all duration-150 hover:bg-stone-50 hover:scale-[1.01] active:scale-[0.98] select-none cursor-pointer;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-[#ECE8E2] bg-white px-4 py-2.5 text-sm text-[#151633] placeholder-stone-400 outline-none transition duration-150 focus:border-[#5B4FE9] focus:ring-1 focus:ring-[#5B4FE9]/10;
+  }
+
+  select.input, select.select-custom {
+    @apply appearance-none bg-no-repeat pr-10;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236D6B8D' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.85rem center;
+    background-size: 1.25rem;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  /* Recharts custom styling */
+  .recharts-rectangle {
+    fill: #5B4FE9 !important; /* Electric Indigo */
+  }
+
+  .recharts-cartesian-grid-horizontal line {
+    stroke: #ECE8E2 !important; /* Chalk border grid lines */
+  }
+
+  .recharts-tooltip-cursor {
+    fill: #F2EFEA !important; /* Chalk hover cursor background */
+  }
+
+  /* Card Hover Elevation */
+  .card-hover {
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1), border-color 200ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(21, 22, 51, 0.08);
+    box-shadow: 0 1px 2px rgba(21, 22, 51, 0.04), 0 8px 24px rgba(21, 22, 51, 0.04);
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: #5B4FE9;
+    box-shadow: 0 4px 6px rgba(21, 22, 51, 0.04), 0 12px 30px rgba(21, 22, 51, 0.06);
+  }
+
+  /* Custom Range Input styling */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #5B4FE9;
+    cursor: pointer;
+    transition: background 150ms ease-in-out, transform 150ms ease-in-out;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    background: #FF6B35;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 1s cubic-bezier(0.22, 1, 0.36, 1);
+}

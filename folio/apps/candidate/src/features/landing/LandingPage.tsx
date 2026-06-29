@@ -65,7 +65,7 @@ export function LandingPage() {
           </Link>
           <nav className="lp-nav-links">
             <a href="#platform" className="lp-nav-link">Platform</a>
-            <a href="#recruiters" className="lp-nav-link">For Recruiters</a>
+            <a href={import.meta.env.VITE_RECRUITER_URL || 'http://localhost:5174'} className="lp-nav-link">For Recruiters</a>
             <a href="#how" className="lp-nav-link">How it works</a>
           </nav>
           <div className="lp-nav-actions">
@@ -98,9 +98,9 @@ export function LandingPage() {
             <Link to="/signup" className="lp-btn-primary lp-btn-large">
               Analyze my portfolio <ArrowRight className="lp-btn-arrow" />
             </Link>
-            <Link to="/signup" className="lp-btn-outline lp-btn-large">
+            <a href={import.meta.env.VITE_RECRUITER_URL || 'http://localhost:5174'} className="lp-btn-outline lp-btn-large">
               I'm hiring design talent
-            </Link>
+            </a>
           </div>
         </div>
 

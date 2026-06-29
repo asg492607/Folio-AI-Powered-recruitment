@@ -59,7 +59,7 @@ if not firebase_admin._apps:
 
 # Mount Communication Pod
 def clear_sys_modules():
-    for mod in ["database", "models", "analyzer", "storage", "vector_db", "scrapers", "config", "routes"]:
+    for mod in ["database", "models", "analyzer", "storage", "vector_db", "scrapers", "config", "routes", "tasks", "llm_evaluator"]:
         if mod in sys.modules:
             del sys.modules[mod]
 
@@ -74,9 +74,49 @@ try:
 except Exception as e:
     print(f"Failed to mount Communication Pod: {e}")
 
+try:
+    clear_sys_modules()
+    assess_dir = os.path.join(BASE_DIR, "assessment_app")
+    sys.path.insert(0, assess_dir)
+    from assessment_app.main import app as assess_api
+    app.mount("/api/assessment", assess_api)
+    sys.path.pop(0)
+    print("Mounted Assessment Pod.")
+except Exception as e:
+    print(f"Failed to mount Assessment Pod: {e}")
+
+try:
+    clear_sys_modules()
+    port_dir = os.path.join(BASE_DIR, "portfolio_app")
+    sys.path.insert(0, port_dir)
+    from portfolio_app.main import app as port_api
+    app.mount("/api/portfolio", port_api)
+    sys.path.pop(0)
+    print("Mounted Portfolio Pod.")
+except Exception as e:
+    print(f"Failed to mount Portfolio Pod: {e}")
+
+try:
+    clear_sys_modules()
+    scrape_dir = os.path.join(BASE_DIR, "scraper_app")
+    sys.path.insert(0, scrape_dir)
+    from scraper_app.main import app as scrape_api
+    app.mount("/api/scraper", scrape_api)
+    sys.path.pop(0)
+    print("Mounted Scraper Pod.")
+except Exception as e:
+    print(f"Failed to mount Scraper Pod: {e}")
+
+try:
+    from collections_router import router as collections_router
+    app.include_router(collections_router, prefix="/api/collections", tags=["Collections"])
+    print("Mounted Collections Router.")
+except Exception as e:
+    print(f"Failed to mount Collections Router: {e}")
+
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "modules": ["communication"]}
+    return {"status": "healthy", "modules": ["communication", "assessment", "portfolio", "scraper"]}
 
 if __name__ == "__main__":
     import uvicorn

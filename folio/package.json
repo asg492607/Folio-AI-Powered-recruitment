@@ -1,0 +1,15 @@
+{
+  "name": "folio-frontend-workspace",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:candidate": "npm run dev --workspace=candidate-experience-pod",
+    "dev:recruiter": "npm run dev --workspace=recruiter-ui",
+    "dev": "npm run dev:candidate & npm run dev:recruiter",
+    "build:candidate": "npm run build --workspace=candidate-experience-pod",
+    "build:recruiter": "npm run build --workspace=recruiter-ui",
+    "build": "npm run build:candidate && npm run build:recruiter"
+  }
+}
