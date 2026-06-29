@@ -135,9 +135,6 @@ export function ApplicationForm() {
           </div>
 
           <div className="mt-12 flex flex-col items-center justify-center gap-4">
-            <Button className="rounded-xl bg-navy px-10 py-4 text-[16px] font-semibold text-white hover:bg-navy/90 shadow-soft" onClick={() => navigate('/assessments', { state: { jobId: activeOpportunity.id, companyName: activeOpportunity.companyName } })}>
-              Take AI Assessment
-            </Button>
             <div className="flex gap-6 mt-4">
               <button onClick={() => navigate('/applications')} className="text-[15px] font-medium text-navy/70 hover:text-indigo transition-colors">
                 Track application

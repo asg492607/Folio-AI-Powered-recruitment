@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { useApplicationStore } from '../../store/applicationStore';
 import { useOpportunityStore } from '../../store/opportunityStore';
@@ -53,6 +54,7 @@ function getTimeLabel(status: string, timestamp: string, isCurrent: boolean) {
 }
 
 export function ApplicationTracking() {
+  const navigate = useNavigate();
   const applications = useApplicationStore((state) => state.applications);
   const opportunities = useOpportunityStore((state) => state.opportunities);
   const [selectedId, setSelectedId] = useState<string>(applications[0]?.id || '');
@@ -231,6 +233,28 @@ export function ApplicationTracking() {
                   </button>
                 )}
               </div>
+              </div>
+
+              {/* Assessment Gating */}
+              {(selectedApp.status || '').toLowerCase() === 'matched' && (
+                <div className="mt-8 rounded-2xl bg-[#5B4FE9]/5 border border-[#5B4FE9]/10 p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in shadow-sm">
+                  <div className="flex gap-4 items-center">
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-[#5B4FE9]/10 flex items-center justify-center text-[#5B4FE9]">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-[#1A1A2E] font-bold text-sm mb-0.5">AI Assessment Requested</h4>
+                      <p className="text-stone-500 text-xs">The recruiter has requested you to complete an AI capability assessment.</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/assessments', { state: { jobId: selectedOpp.id, companyName: selectedOpp.companyName } })}
+                    className="shrink-0 bg-[#5B4FE9] hover:bg-[#5B4FE9]/90 text-white rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors shadow-md"
+                  >
+                    Start Assessment <ArrowRight size={14} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Chat Integration */}
