@@ -1,34 +1,59 @@
 services:
-  # 1. The Unified Python Backend API
+  # 1. The Unified Python Backend
   - type: web
-    name: mitiod-unified-api
+    name: folio-unified-backend
     env: python
-    region: oregon
-    plan: free
     rootDir: unified_backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.12
-      # The credentials JSON string can be pasted into the Render dashboard
-      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
-        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: PYTHON_VERSION
+        value: 3.11.0
 
-  # 2. The React Candidate UIUX Frontend
+  # 2. Candidate React Frontend (Static Site)
   - type: web
-    name: mitiod-candidate-ui
+    name: folio-candidate-app
     env: static
-    rootDir: "candidate uiux"
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
+    rootDir: folio
+    buildCommand: npm install && npm run build:candidate
+    staticPublishPath: apps/candidate/dist
+    envVars:
+      # Automatically fetch the deployed URL of the backend!
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: folio-unified-backend
+          envVarKey: RENDER_EXTERNAL_URL
+
+  # 3. Recruiter React Frontend (Static Site)
+  - type: web
+    name: folio-recruiter-app
+    env: static
+    rootDir: folio
+    buildCommand: npm install && npm run build:recruiter
+    staticPublishPath: apps/recruiter/dist
     envVars:
       - key: VITE_API_URL
         fromService:
           type: web
-          name: mitiod-unified-api
+          name: folio-unified-backend
           envVarKey: RENDER_EXTERNAL_URL
+      # Firebase fallback mocks for Recruiter App deployment
+      - key: VITE_FIREBASE_API_KEY
+        value: mock-key
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        value: mock-domain
+      - key: VITE_FIREBASE_PROJECT_ID
+        value: mock-project
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        value: mock-bucket
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        value: mock-sender
+      - key: VITE_FIREBASE_APP_ID
+        value: mock-app
