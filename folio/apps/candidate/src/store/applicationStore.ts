@@ -3,7 +3,7 @@ import type { Application } from '../types';
 import { trackEvent } from '../utils/analytics';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 const COLLECTIONS_URL = `${API_BASE}/api/collections/candidates`;
 
 interface ApplicationState {

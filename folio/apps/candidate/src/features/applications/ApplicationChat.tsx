@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Send } from 'lucide-react';
 import { useCandidateStore } from '../../store/candidateStore';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 const CHATS_URL = `${API_BASE}/api/collections/chats`;
 
 interface ChatMessage {

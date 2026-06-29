@@ -131,7 +131,7 @@ export async function fetchOpportunities(skills?: string[]): Promise<Opportunity
   }
 
   try {
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const API_BASE = import.meta.env.VITE_API_URL || '';
     const res = await fetch(`${API_BASE}/api/collections/jobs`, {
       signal: AbortSignal.timeout(5000),
     });

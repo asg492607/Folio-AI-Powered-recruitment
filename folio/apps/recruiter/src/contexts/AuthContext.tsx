@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { AuthContext } from '@/contexts/AuthContextValue';
-import { seedUsers } from '@/data/seed';
 import { Role, User } from '@/types';
 import { db } from '@/services/firebase/db';
+import { getAuth, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'firebase/auth';
+import { firebaseApp } from '@/services/firebase/app';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -10,22 +11,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [checkingProfile, setCheckingProfile] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('recruiter_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
+    if (!firebaseApp) {
       setCheckingProfile(false);
+      return;
     }
+    const auth = getAuth(firebaseApp);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const u: User = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Recruiter',
+          role: 'Recruiter',
+        };
+        setUser(u);
+      } else {
+        setUser(null);
+        setRecruiterProfile(null);
+        setCheckingProfile(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     const checkProfile = async () => {
       if (!user) {
-        setRecruiterProfile(null);
-        setCheckingProfile(false);
-        return;
-      }
-      if (user.role !== 'Recruiter') {
         setRecruiterProfile(null);
         setCheckingProfile(false);
         return;
@@ -44,32 +55,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     void checkProfile();
   }, [user]);
 
-  const login = (email: string, password: string, role: Role) => {
-    const matchingUser = seedUsers.find(
-      (account) => account.email === email.trim().toLowerCase() && account.password === password && account.role === role,
-    );
-
-    if (!matchingUser) {
+  const login = async (email: string, password: string, role: Role) => {
+    if (!firebaseApp) return false;
+    try {
+      const auth = getAuth(firebaseApp);
+      await signInWithEmailAndPassword(auth, email, password);
+      return true;
+    } catch (error) {
+      console.error("Login failed", error);
       return false;
     }
-
-    const userWithoutPassword: User = {
-      id: matchingUser.id,
-      email: matchingUser.email,
-      displayName: matchingUser.displayName,
-      role: matchingUser.role,
-      photoURL: matchingUser.photoURL,
-    };
-    setCheckingProfile(true);
-    setUser(userWithoutPassword);
-    localStorage.setItem('recruiter_user', JSON.stringify(userWithoutPassword));
-    return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (firebaseApp) {
+      const auth = getAuth(firebaseApp);
+      await firebaseSignOut(auth);
+    }
     setUser(null);
     setRecruiterProfile(null);
-    localStorage.removeItem('recruiter_user');
   };
 
   return (
