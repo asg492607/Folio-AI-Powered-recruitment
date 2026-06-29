@@ -81,10 +81,8 @@ export function SignUp() {
               </button>
               <button
                 type="button"
-                className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
-                  role === 'recruiter' ? 'bg-navy text-white' : 'text-navy/70 hover:text-navy'
-                }`}
-                onClick={() => setRole('recruiter')}
+                className="flex-1 rounded-md py-2 text-sm font-medium transition-colors text-navy/70 hover:text-navy"
+                onClick={() => window.location.href = '/recruiter/login'}
               >
                 Recruiter / Hiring
               </button>
