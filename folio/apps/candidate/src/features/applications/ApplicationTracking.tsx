@@ -254,13 +254,12 @@ export function ApplicationTracking() {
                   </button>
                 </div>
               )}
+                {/* Chat Integration */}
+                <div className="mt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                  <ApplicationChat applicationId={selectedApp.id} />
+                </div>
             </div>
-
-            {/* Chat Integration */}
-            <div className="mt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <ApplicationChat applicationId={selectedApp.id} />
-            </div>
-          </div>)}
+          )}
         </div>
       </div>
     </div>
