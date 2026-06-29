@@ -1,6 +1,4 @@
-import { Database, AlertTriangle } from 'lucide-react';
-import { hasFirebaseConfig } from '@/services/firebase/app';
-import StatusBadge from '@/components/StatusBadge';
+import { Database } from 'lucide-react';
 
 export default function AdminPage() {
   return (

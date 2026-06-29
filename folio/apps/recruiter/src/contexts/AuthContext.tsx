@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AuthContext } from '@/contexts/AuthContextValue';
 import { Role, User } from '@/types';
 import { db } from '@/services/firebase/db';
-import { getAuth, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth';
 import { firebaseApp } from '@/services/firebase/app';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     void checkProfile();
   }, [user]);
 
-  const login = async (email: string, password: string, role: Role) => {
+  const login = async (email: string, password: string, _role: Role) => {
     if (!firebaseApp) return false;
     try {
       const auth = getAuth(firebaseApp);

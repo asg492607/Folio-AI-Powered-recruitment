@@ -1,6 +1,3 @@
-import { doc, setDoc } from 'firebase/firestore';
-import { firestore, hasFirebaseConfig } from '@/services/firebase/app';
-
 const API_BASE = "/api/collections";
 
 export const db = {
