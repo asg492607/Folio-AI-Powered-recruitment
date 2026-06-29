@@ -83,7 +83,7 @@ export function ApplicationForm() {
       })),
       status: 'Applied', // Recruiter expects 'Applied' capitalized
       appliedAt: new Date().toISOString(),
-      statusHistory: [{ status: 'applied', timestamp: new Date().toISOString() }],
+      statusHistory: [{ status: 'Applied', timestamp: new Date().toISOString() }],
     };
     addApplication(application as any);
     toast.success('Application submitted.');

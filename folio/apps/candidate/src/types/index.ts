@@ -4,13 +4,14 @@ export type ExperienceLevel = 'student' | 'entry' | '1-3yrs' | '3+yrs';
 export type WorkType = 'internship' | 'freelance' | 'full_time';
 export type LocationType = 'remote' | 'hybrid' | 'onsite';
 export type ApplicationStatus =
-  | 'applied'
-  | 'viewed'
-  | 'under_review'
-  | 'shortlisted'
-  | 'interview_scheduled'
-  | 'selected'
-  | 'rejected';
+  | 'Applied'
+  | 'Matched'
+  | 'Assessment Completed'
+  | 'Shortlisted'
+  | 'Interviewing'
+  | 'Offered'
+  | 'Hired'
+  | 'Withdrawn';
 
 export interface Candidate {
   id: string;

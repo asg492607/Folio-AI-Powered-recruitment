@@ -19,9 +19,15 @@ export default function PipelinePage() {
   const advanceCandidate = async (candidate: Candidate) => {
     const currentIndex = stages.indexOf(candidate.status);
     const textNext = stages[Math.min(currentIndex + 1, stages.length - 1)];
-    await updateItem(candidate.id, { status: textNext });
+    const newHistory = [...((candidate as any).statusHistory || []), { status: textNext, timestamp: new Date().toISOString() }];
+    
+    await updateItem(candidate.id, { 
+      status: textNext,
+      statusHistory: newHistory
+    } as any);
+    
     if (selectedCandidate?.id === candidate.id) {
-      setSelectedCandidate({ ...selectedCandidate, status: textNext });
+      setSelectedCandidate({ ...selectedCandidate, status: textNext, statusHistory: newHistory } as any);
     }
   };
 

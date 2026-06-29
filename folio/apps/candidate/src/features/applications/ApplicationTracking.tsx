@@ -10,32 +10,35 @@ import { useCandidateStore } from '../../store/candidateStore';
 import { ApplicationChat } from './ApplicationChat';
 
 const stages: { status: ApplicationStatus; label: string; step: number }[] = [
-  { status: 'applied', label: 'Applied', step: 1 },
-  { status: 'viewed', label: 'Viewed', step: 2 },
-  { status: 'under_review', label: 'Under Review', step: 3 },
-  { status: 'shortlisted', label: 'Shortlisted', step: 4 },
-  { status: 'interview_scheduled', label: 'Interview', step: 5 },
-  { status: 'selected', label: 'Decision', step: 6 },
+  { status: 'Applied', label: 'Applied', step: 1 },
+  { status: 'Matched', label: 'Matched', step: 2 },
+  { status: 'Assessment Completed', label: 'Assessment', step: 3 },
+  { status: 'Shortlisted', label: 'Shortlisted', step: 4 },
+  { status: 'Interviewing', label: 'Interview', step: 5 },
+  { status: 'Offered', label: 'Offered', step: 6 },
+  { status: 'Hired', label: 'Hired', step: 7 },
 ];
 
 const statusLabels: Record<string, string> = {
-  applied: 'APPLIED',
-  viewed: 'VIEWED',
-  under_review: 'UNDER REVIEW',
-  shortlisted: 'SHORTLISTED',
-  interview_scheduled: 'INTERVIEW',
-  selected: 'SELECTED',
-  rejected: 'REJECTED',
+  'Applied': 'APPLIED',
+  'Matched': 'MATCHED',
+  'Assessment Completed': 'ASSESSMENT',
+  'Shortlisted': 'SHORTLISTED',
+  'Interviewing': 'INTERVIEWING',
+  'Offered': 'OFFERED',
+  'Hired': 'HIRED',
+  'Withdrawn': 'WITHDRAWN',
 };
 
 const statusColors: Record<string, string> = {
-  applied: 'app-status-badge--applied',
-  viewed: 'app-status-badge--viewed',
-  under_review: 'app-status-badge--review',
-  shortlisted: 'app-status-badge--shortlisted',
-  interview_scheduled: 'app-status-badge--interview',
-  selected: 'app-status-badge--selected',
-  rejected: 'app-status-badge--rejected',
+  'Applied': 'app-status-badge--applied',
+  'Matched': 'app-status-badge--viewed',
+  'Assessment Completed': 'app-status-badge--review',
+  'Shortlisted': 'app-status-badge--shortlisted',
+  'Interviewing': 'app-status-badge--interview',
+  'Offered': 'app-status-badge--selected',
+  'Hired': 'app-status-badge--selected',
+  'Withdrawn': 'app-status-badge--rejected',
 };
 
 function formatDate(dateStr: string) {
