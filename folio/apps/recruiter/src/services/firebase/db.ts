@@ -1,5 +1,5 @@
 import { seedCampusDrives, seedCandidates, seedInterviews, seedJobs, seedNotifications } from '@/data/seed';
-import { addDoc, collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { firestore, hasFirebaseConfig } from '@/services/firebase/app';
 
 type CollectionName = 'jobs' | 'candidates' | 'interviews' | 'campusDrives' | 'notifications' | 'recruiterProfiles';
