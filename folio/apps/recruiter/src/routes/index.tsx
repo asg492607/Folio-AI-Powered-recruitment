@@ -74,7 +74,7 @@ const router = createBrowserRouter([
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
-]);
+], { basename: '/recruiter' });
 
 export const AppRoutes = () => {
   return <RouterProvider router={router} />;

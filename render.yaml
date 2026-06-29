@@ -1,11 +1,11 @@
 services:
-  # 1. The Unified Python Backend
+  # The All-in-One Unified Monolithic Server
   - type: web
-    name: folio-unified-backend
+    name: folio-all-in-one
     env: python
-    rootDir: unified_backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    rootDir: .
+    buildCommand: bash ./build.sh
+    startCommand: cd unified_backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GROQ_API_KEY
         sync: false
@@ -15,35 +15,8 @@ services:
         value: "*"
       - key: PYTHON_VERSION
         value: 3.11.0
-
-  # 2. Candidate React Frontend (Static Site)
-  - type: web
-    name: folio-candidate-app
-    env: static
-    rootDir: folio
-    buildCommand: npm install && npm run build:candidate
-    staticPublishPath: apps/candidate/dist
-    envVars:
-      # Automatically fetch the deployed URL of the backend!
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: folio-unified-backend
-          envVarKey: RENDER_EXTERNAL_URL
-
-  # 3. Recruiter React Frontend (Static Site)
-  - type: web
-    name: folio-recruiter-app
-    env: static
-    rootDir: folio
-    buildCommand: npm install && npm run build:recruiter
-    staticPublishPath: apps/recruiter/dist
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: folio-unified-backend
-          envVarKey: RENDER_EXTERNAL_URL
+        value: ""
       # Firebase fallback mocks for Recruiter App deployment
       - key: VITE_FIREBASE_API_KEY
         value: mock-key

@@ -118,6 +118,46 @@ except Exception as e:
 def health_check():
     return {"status": "healthy", "modules": ["communication", "assessment", "portfolio", "scraper"]}
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+# Paths to the built frontends
+candidate_dist = Path(BASE_DIR).parent / "folio" / "apps" / "candidate" / "dist"
+recruiter_dist = Path(BASE_DIR).parent / "folio" / "apps" / "recruiter" / "dist"
+
+# Mount Static Assets
+if (candidate_dist / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(candidate_dist / "assets")), name="candidate_assets")
+if (recruiter_dist / "assets").exists():
+    app.mount("/recruiter/assets", StaticFiles(directory=str(recruiter_dist / "assets")), name="recruiter_assets")
+
+# SPA Catch-all for Recruiter App
+@app.get("/recruiter/{full_path:path}")
+async def serve_recruiter_spa(full_path: str):
+    file_path = recruiter_dist / full_path
+    if file_path.is_file():
+        return FileResponse(str(file_path))
+    index_path = recruiter_dist / "index.html"
+    if index_path.is_file():
+        return FileResponse(str(index_path))
+    return JSONResponse(status_code=404, content={"detail": "Recruiter frontend not built."})
+
+# SPA Catch-all for Candidate App
+@app.get("/{full_path:path}")
+async def serve_candidate_spa(full_path: str):
+    # Do not intercept API calls
+    if full_path.startswith("api/"):
+        return JSONResponse(status_code=404, content={"detail": "API route not found"})
+    
+    file_path = candidate_dist / full_path
+    if file_path.is_file():
+        return FileResponse(str(file_path))
+    index_path = candidate_dist / "index.html"
+    if index_path.is_file():
+        return FileResponse(str(index_path))
+    return JSONResponse(status_code=404, content={"detail": "Candidate frontend not built."})
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
