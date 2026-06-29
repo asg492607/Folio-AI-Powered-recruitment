@@ -161,8 +161,6 @@ export async function fetchOpportunities(skills?: string[]): Promise<Opportunity
         message: 'Live job feed unavailable. Displaying cached jobs from database.',
       });
     });
-  }
-
   // ── Step 3: Fall back to Firestore permanent cache ──────────────────────────
   const cached = await readFromFirestore();
 

@@ -233,7 +233,6 @@ export function ApplicationTracking() {
                   </button>
                 )}
               </div>
-              </div>
 
               {/* Assessment Gating */}
               {(selectedApp.status || '').toLowerCase() === 'matched' && (
