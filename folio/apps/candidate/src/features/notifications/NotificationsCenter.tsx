@@ -10,6 +10,7 @@ const typeLabels: Record<Notification['type'], string> = {
   interview_update: 'Interview update',
   new_opportunity: 'New opportunity',
   profile_suggestion: 'Profile suggestion',
+  match_alert: 'Match alert',
 };
 
 export function NotificationsCenter() {
