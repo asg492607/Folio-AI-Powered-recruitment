@@ -30,10 +30,7 @@ async def global_exception_handler(request, exc):
         status_code=500,
         content={"detail": "Internal server error. Please try again later."},
     )
-@app.get("/")
-@app.head("/")
-def read_root():
-    return {"status": "ok", "message": "Unified Backend is running successfully!"}
+
 
 # Initialize Firebase
 if not firebase_admin._apps:
@@ -133,8 +130,10 @@ if (recruiter_dist / "assets").exists():
     app.mount("/recruiter/assets", StaticFiles(directory=str(recruiter_dist / "assets")), name="recruiter_assets")
 
 # SPA Catch-all for Recruiter App
+@app.get("/recruiter")
+@app.get("/recruiter/")
 @app.get("/recruiter/{full_path:path}")
-async def serve_recruiter_spa(full_path: str):
+async def serve_recruiter_spa(full_path: str = ""):
     file_path = recruiter_dist / full_path
     if file_path.is_file():
         return FileResponse(str(file_path))
@@ -145,7 +144,7 @@ async def serve_recruiter_spa(full_path: str):
 
 # SPA Catch-all for Candidate App
 @app.get("/{full_path:path}")
-async def serve_candidate_spa(full_path: str):
+async def serve_candidate_spa(full_path: str = ""):
     # Do not intercept API calls
     if full_path.startswith("api/"):
         return JSONResponse(status_code=404, content={"detail": "API route not found"})
