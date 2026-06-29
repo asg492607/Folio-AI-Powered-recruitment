@@ -116,31 +116,45 @@ function mapApiItem(item: any, skills: string[]): Opportunity {
  * 3. If API is empty or fails → fall back to Firestore cache (permanent storage)
  */
 export async function fetchOpportunities(skills?: string[]): Promise<Opportunity[]> {
-  // ── Step 1: Try live API ────────────────────────────────────────────────────
+  // ── Step 1: Try live API (Scraper + Unified Backend) ────────────────────────
+  let combinedOps: any[] = [];
   try {
     const res = await fetch(`${JOB_SCRATCHER_URL}/api/v1/opportunities?limit=200`, {
       signal: AbortSignal.timeout(10000), // 10s timeout
     });
-
     if (res.ok) {
-      const data: any[] = await res.json();
-
-      if (data && data.length > 0) {
-        // Map and enrich with match scores
-        const ops = data.map((item) => mapApiItem(item, skills || []));
-
-        // ── Step 2: Persist to Firestore in background ─────────────────────
-        persistToFirestore(ops); // fire-and-forget
-
-        console.log(`[opportunities] Fetched ${ops.length} jobs from live API.`);
-        return ops;
-      }
-
-      // API returned empty array — fall through to Firestore cache
-      console.warn('[opportunities] Live API returned 0 jobs, falling back to Firestore cache.');
+      const data = await res.json();
+      if (Array.isArray(data)) combinedOps = [...data];
     }
   } catch (err) {
-    console.warn('[opportunities] Live API unreachable, falling back to Firestore cache:', err);
+    console.warn('[opportunities] Scraper API unreachable:', err);
+  }
+
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const res = await fetch(`${API_BASE}/api/collections/jobs`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) combinedOps = [...combinedOps, ...data];
+    }
+  } catch (err) {
+    console.warn('[opportunities] Unified Backend collections unreachable:', err);
+  }
+
+  if (combinedOps.length > 0) {
+    // Map and enrich with match scores
+    const ops = combinedOps.map((item) => mapApiItem(item, skills || []));
+
+    // ── Step 2: Persist to Firestore in background ─────────────────────
+    persistToFirestore(ops).catch(() => {});
+
+    console.log(`[opportunities] Fetched ${ops.length} jobs from combined APIs.`);
+    return ops.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+  }
+
+  console.warn('[opportunities] Live APIs returned 0 jobs, falling back to Firestore cache.');
     import('../store/notificationStore').then(({ useNotificationStore }) => {
       useNotificationStore.getState().pushNotification({
         type: 'match_alert',
