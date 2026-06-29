@@ -4,6 +4,9 @@ import { PageHeader } from '../../components/PageHeader';
 import { useApplicationStore } from '../../store/applicationStore';
 import { useOpportunityStore } from '../../store/opportunityStore';
 import type { Application, ApplicationStatus } from '../../types';
+import { useEffect } from 'react';
+import { useCandidateStore } from '../../store/candidateStore';
+import { ApplicationChat } from './ApplicationChat';
 
 const stages: { status: ApplicationStatus; label: string; step: number }[] = [
   { status: 'applied', label: 'Applied', step: 1 },
@@ -55,6 +58,14 @@ export function ApplicationTracking() {
   const [selectedId, setSelectedId] = useState<string>(applications[0]?.id || '');
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [withdrawnIds, setWithdrawnIds] = useState<string[]>([]);
+  const fetchApplications = useApplicationStore((state) => state.fetchApplications);
+  const candidate = useCandidateStore((state) => state.candidate);
+
+  useEffect(() => {
+    if (candidate?.id) {
+      fetchApplications(candidate.id);
+    }
+  }, [candidate?.id, fetchApplications]);
 
   const selectedApp = applications.find((a) => a.id === selectedId) || applications[0];
   const selectedOpp = selectedApp
@@ -221,7 +232,12 @@ export function ApplicationTracking() {
                 )}
               </div>
             </div>
-          )}
+
+            {/* Chat Integration */}
+            <div className="mt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <ApplicationChat applicationId={selectedApp.id} />
+            </div>
+          </div>)}
         </div>
       </div>
     </div>

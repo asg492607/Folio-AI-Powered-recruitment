@@ -63,21 +63,29 @@ export function ApplicationForm() {
   ];
 
   function submit(values: ApplicationValues) {
-    const application: Application = {
+    const application = {
       id: crypto.randomUUID(),
       candidateId: candidate.id,
       opportunityId: activeOpportunity.id,
+      jobId: activeOpportunity.id, // For Recruiter App compatibility
+      jobTitle: activeOpportunity.title,
+      name: candidate.personalInfo?.name || 'Applicant',
+      matchScore: activeOpportunity.matchPercentage || 75,
+      skills: candidate.skills || [],
+      location: candidate.personalInfo?.location || 'Remote',
+      source: 'Direct Application',
+      email: candidate.email,
       resumeUrl: values.resumeUrl,
       portfolioAttachmentUrl: values.portfolioAttachmentUrl,
       answers: questions.map((q, index) => ({
         question: q.label,
         answer: values[`answer${index}` as keyof ApplicationValues] ?? '',
       })),
-      status: 'applied',
+      status: 'Applied', // Recruiter expects 'Applied' capitalized
       appliedAt: new Date().toISOString(),
       statusHistory: [{ status: 'applied', timestamp: new Date().toISOString() }],
     };
-    addApplication(application);
+    addApplication(application as any);
     toast.success('Application submitted.');
     setIsSubmitted(true);
   }

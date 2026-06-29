@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, UsersRound, MapPin, X, Sparkles, FileText, CalendarRange } from 'lucide-react';
 import { useCollection } from '@/hooks/useCollection';
 import type { Candidate, Job } from '@/types';
+import { CandidateChat } from './CandidateChat';
 
 const stages: Candidate['status'][] = ['Applied', 'Matched', 'Assessment Completed', 'Shortlisted', 'Interviewing', 'Offered', 'Hired'];
 
@@ -416,8 +417,12 @@ export default function PipelinePage() {
                   onChange={(e) => setNotes(e.target.value)}
                   onBlur={handleNotesBlur}
                   className="input w-full min-h-24 resize-none font-sans text-xs p-3.5 bg-white border-slate-200 shadow-inner"
-                  placeholder="Enter custom recruiter notes. Updates save automatically on click outside."
                 />
+              </div>
+
+              {/* Chat Integration */}
+              <div className="mb-5 h-[350px]">
+                <CandidateChat applicationId={selectedCandidate.id} />
               </div>
             </div>
 
