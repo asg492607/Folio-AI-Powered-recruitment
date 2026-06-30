@@ -44,9 +44,9 @@ export const portfolioApi = {
   },
 };
 
-// External Assessment Engine API
+// External Assessment Engine API (Now routed to unified backend)
 const assessmentAxios = axios.create({
-  baseURL: 'https://assesment-engine-internship.onrender.com',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -55,13 +55,13 @@ const assessmentAxios = axios.create({
 // Assessment endpoints
 export const assessmentApi = {
   applyToJob: async (jobId: number) => {
-    return assessmentAxios.post('/api/assessment/apply', { job_id: jobId });
+    return assessmentAxios.post('/api/assessment/api/assessment/apply', { job_id: jobId });
   },
   getQuizQuestion: async (candidateId: string) => {
-    return assessmentAxios.get(`/api/quiz/question?candidate_id=${candidateId}`);
+    return assessmentAxios.get(`/api/assessment/api/quiz/question?candidate_id=${candidateId}`);
   },
   submitAnswer: async (candidateId: string, question: string, answer: string, score: number) => {
-    return assessmentAxios.post('/api/quiz/submit', {
+    return assessmentAxios.post('/api/assessment/api/quiz/submit', {
       candidate_id: candidateId,
       question: question,
       selected_option: answer,
@@ -69,10 +69,10 @@ export const assessmentApi = {
     });
   },
   triggerAnalysis: async (candidateId: string) => {
-    return assessmentAxios.post(`/api/assessment/trigger_analysis?candidate_id=${candidateId}`);
+    return assessmentAxios.post(`/api/assessment/api/assessment/trigger_analysis?candidate_id=${candidateId}`);
   },
   getReport: async (candidateId: string) => {
-    return assessmentAxios.get(`/api/assessment/report/${candidateId}`);
+    return assessmentAxios.get(`/api/assessment/api/assessment/report/${candidateId}`);
   }
 };
 
