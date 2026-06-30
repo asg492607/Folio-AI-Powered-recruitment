@@ -10,6 +10,7 @@ import InterviewsPage from '@/features/interviews/InterviewsPage';
 import JobsPage from '@/features/jobs/JobsPage';
 import NotificationsPage from '@/features/notifications/NotificationsPage';
 import PipelinePage from '@/features/pipeline/PipelinePage';
+import MessagesPage from '@/features/messages/MessagesPage';
 import OfferManagementPage from '@/features/offers/OfferManagementPage';
 import RecruiterProfilePage from '@/features/recruiter/RecruiterProfilePage';
 
@@ -66,6 +67,7 @@ const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: 'jobs', element: <JobsPage /> },
       { path: 'pipeline', element: <PipelinePage /> },
+      { path: 'messages', element: <MessagesPage /> },
       { path: 'interviews', element: <InterviewsPage /> },
       { path: 'campus', element: <CampusPage /> },
       { path: 'notifications', element: <NotificationsPage /> },

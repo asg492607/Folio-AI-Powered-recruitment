@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, BriefcaseBusiness, Building2, CalendarClock, Gauge, LogOut, Settings2, UsersRound, Handshake } from 'lucide-react';
+import { Bell, BriefcaseBusiness, Building2, CalendarClock, Gauge, LogOut, Settings2, UsersRound, Handshake, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/useAuth';
 import { useCollection } from '@/hooks/useCollection';
 import type { NotificationItem } from '@/types';
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: Gauge },
   { to: '/jobs', label: 'Job Posts', icon: BriefcaseBusiness },
   { to: '/pipeline', label: 'Candidates', icon: UsersRound },
+  { to: '/messages', label: 'Messages', icon: MessageSquare },
   { to: '/interviews', label: 'Interviews', icon: CalendarClock },
   { to: '/campus', label: 'Campus Drives', icon: Building2 },
   { to: '/offers', label: 'Offer Desk', icon: Handshake },
@@ -20,6 +21,7 @@ const titles: Record<string, string> = {
   '/': 'Dashboard',
   '/jobs': 'Job Requisitions',
   '/pipeline': 'Candidate Pipeline',
+  '/messages': 'Messages',
   '/interviews': 'Interview Calendar',
   '/campus': 'Campus Recruitment',
   '/offers': 'Offer Desk',
