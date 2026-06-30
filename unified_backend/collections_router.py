@@ -1,47 +1,44 @@
-﻿from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException
 from typing import Any, Dict
-import json
-import os
 import uuid
+from firebase_admin import firestore
 
 router = APIRouter()
-DATA_DIR = "collections_data"
-os.makedirs(DATA_DIR, exist_ok=True)
 
-def get_file_path(name: str): return os.path.join(DATA_DIR, f"{name}.json")
-
-def load_data(name: str):
-    path = get_file_path(name)
-    if not os.path.exists(path): return []
-    with open(path, "r") as f: return json.load(f)
-
-def save_data(name: str, data: list):
-    with open(get_file_path(name), "w") as f: json.dump(data, f)
+def get_db():
+    return firestore.client()
 
 @router.get("/{name}")
-def get_docs(name: str): return load_data(name)
+def get_docs(name: str):
+    db = get_db()
+    docs = db.collection(name).stream()
+    return [doc.to_dict() for doc in docs]
 
 @router.post("/{name}")
 def add_doc(name: str, doc: Dict[str, Any]):
-    data = load_data(name)
-    if "id" not in doc: doc["id"] = uuid.uuid4().hex[:9]
-    data.append(doc)
-    save_data(name, data)
+    db = get_db()
+    if "id" not in doc:
+        doc["id"] = uuid.uuid4().hex[:9]
+    
+    # Write to Firestore using the ID as the document ID
+    db.collection(name).document(doc["id"]).set(doc)
     return doc
 
 @router.patch("/{name}/{doc_id}")
 def update_doc(name: str, doc_id: str, doc: Dict[str, Any]):
-    data = load_data(name)
-    for i, item in enumerate(data):
-        if item.get("id") == doc_id:
-            data[i].update(doc)
-            save_data(name, data)
-            return data[i]
-    raise HTTPException(404, "Not found")
+    db = get_db()
+    doc_ref = db.collection(name).document(doc_id)
+    
+    if not doc_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    doc["id"] = doc_id
+    doc_ref.update(doc)
+    
+    return doc_ref.get().to_dict()
 
 @router.delete("/{name}/{doc_id}")
 def delete_doc(name: str, doc_id: str):
-    data = load_data(name)
-    data = [item for item in data if item.get("id") != doc_id]
-    save_data(name, data)
+    db = get_db()
+    db.collection(name).document(doc_id).delete()
     return {"status": "deleted"}
