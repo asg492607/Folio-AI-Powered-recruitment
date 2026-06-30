@@ -35,7 +35,7 @@ export function ApplicationForm() {
   const form = useForm<ApplicationValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      resumeUrl: 'Avni_Sharma_Resume_2025.pdf',
+      resumeUrl: '',
       portfolioAttachmentUrl: candidate.portfolioLinks[0]?.url || '',
     },
   });
@@ -174,17 +174,40 @@ export function ApplicationForm() {
             <div className="rounded-2xl border border-chalk-200 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
               <h2 className="mb-5 text-[18px] font-bold text-navy">Resume</h2>
               
-              <div className="flex items-center justify-between rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-5">
+              <div className={`flex items-center justify-between rounded-xl border p-5 transition-colors ${form.watch('resumeUrl') ? 'border-[#bbf7d0] bg-[#f0fdf4]' : 'border-chalk-300 bg-white'}`}>
                  <div className="flex items-center gap-4">
-                   <FileText className="h-5 w-5 text-[#059669]" strokeWidth={2} />
+                   <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${form.watch('resumeUrl') ? 'bg-white shadow-sm' : 'bg-chalk-100'}`}>
+                     <FileText className={`h-5 w-5 ${form.watch('resumeUrl') ? 'text-[#059669]' : 'text-navy/40'}`} strokeWidth={2} />
+                   </div>
                    <div>
-                     <p className="text-[14.5px] font-bold text-navy">Avni_Sharma_Resume_2025.pdf</p>
-                     <p className="text-[13px] text-navy/60 font-medium mt-0.5">From your profile · Updated 2 weeks ago</p>
+                     <p className="text-[14.5px] font-bold text-navy">
+                       {form.watch('resumeUrl') || 'No resume attached'}
+                     </p>
+                     <p className="text-[13px] text-navy/60 font-medium mt-0.5">
+                       {form.watch('resumeUrl') ? 'Ready to submit' : 'Please upload your resume (PDF, DOCX)'}
+                     </p>
+                     <p className="mt-1 text-xs text-orange-600 font-medium">
+                       {form.formState.errors.resumeUrl?.message}
+                     </p>
                    </div>
                  </div>
-                 <button type="button" className="text-[14.5px] font-bold text-navy hover:text-indigo">
-                   Replace
-                 </button>
+                 
+                 <label className="cursor-pointer text-[14.5px] font-bold text-navy hover:text-indigo transition-colors px-3 py-1.5 rounded-lg hover:bg-indigo/5">
+                   {form.watch('resumeUrl') ? 'Replace' : 'Upload'}
+                   <input 
+                     type="file" 
+                     className="hidden" 
+                     accept=".pdf,.doc,.docx"
+                     onChange={(e) => {
+                       const file = e.target.files?.[0];
+                       if (file) {
+                         // In a real app, this would trigger a file upload to Firebase Storage
+                         // For now, we simulate the upload by setting the resumeUrl to the filename
+                         form.setValue('resumeUrl', file.name, { shouldValidate: true });
+                       }
+                     }}
+                   />
+                 </label>
               </div>
             </div>
 
