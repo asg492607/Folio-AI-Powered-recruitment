@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, Search, MessageSquare, UserCircle2 } from 'lucide-react';
 import { useCollection } from '@/hooks/useCollection';
-import type { CandidateApplication } from '@/types';
+import type { Candidate } from '@/types';
 
 interface ChatMessage {
   id: string;
@@ -13,7 +13,7 @@ interface ChatMessage {
 }
 
 export default function MessagesPage() {
-  const { items: applications } = useCollection<CandidateApplication>('applications');
+  const { items: applications } = useCollection<Candidate>('candidates');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
