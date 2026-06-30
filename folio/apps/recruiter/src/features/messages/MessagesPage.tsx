@@ -60,7 +60,7 @@ export default function MessagesPage() {
     return {
       app,
       lastMessage,
-      timestamp: lastMessage ? new Date(lastMessage.timestamp).getTime() : new Date(app.appliedAt).getTime()
+      timestamp: lastMessage ? new Date(lastMessage.timestamp).getTime() : new Date(app.appliedDate).getTime()
     };
   }).sort((a, b) => b.timestamp - a.timestamp);
 
