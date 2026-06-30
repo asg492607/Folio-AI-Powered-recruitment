@@ -29,8 +29,8 @@ export function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
   };
 
   return (
-    <article className="group relative flex flex-col rounded-3xl border border-chalk-200 bg-white overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-card w-full">
-      <div className="p-6">
+    <article className="group relative flex flex-col h-full rounded-3xl border border-chalk-200 bg-white overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-card w-full">
+      <div className="p-6 flex flex-col flex-1">
         {/* Header: Logo and Bookmark */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1A1A2E] text-white text-2xl font-bold uppercase shadow-sm">
@@ -64,7 +64,7 @@ export function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
         <Link
           to={`/opportunities/${opportunity.id}`}
           onClick={() => trackEvent('opportunity_clicked', { opportunityId: opportunity.id })}
-          className="flex flex-col focus:outline-none"
+          className="flex flex-col flex-1 focus:outline-none"
         >
           {/* Company & Role */}
           <span className="text-[#8c8c8c] text-[15px] font-medium mb-1.5 font-sans">
@@ -88,35 +88,35 @@ export function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
             </span>
           </div>
 
-          <div className="w-full h-px bg-[#f0f0f0] my-5" />
+          <div className="w-full h-px bg-[#f0f0f0] mt-auto mb-5" />
 
           {/* Ratings & Reviews */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <button 
-              className={`flex items-center gap-2 group/rating ${hasRated ? 'scale-105' : ''} transition-all duration-300`}
+              className={`flex items-center gap-1.5 group/rating ${hasRated ? 'scale-105' : ''} transition-all duration-300`}
               onClick={handleRate}
             >
               <Star 
-                className={`h-5 w-5 ${hasRated ? 'text-yellow-400 fill-yellow-400' : 'text-[#1A1A2E] group-hover/rating:text-yellow-400'} transition-colors`} 
+                className={`h-5 w-5 shrink-0 ${hasRated ? 'text-yellow-400 fill-yellow-400' : 'text-[#1A1A2E] group-hover/rating:text-yellow-400'} transition-colors`} 
                 strokeWidth={2.5} 
                 fill={hasRated ? 'currentColor' : '#1A1A2E'} 
               />
               <span className="font-bold text-[#1A1A2E] text-[16px]">{hasRated ? (opportunity.rating ? (opportunity.rating + 0.1).toFixed(1) : '4.7') : (opportunity.rating || '4.6')}</span>
-              <span className="text-[#8c8c8c] text-[13px]">({opportunity.reviewCount || '1.8k'} Reviews)</span>
+              <span className="text-[#8c8c8c] text-[13px] whitespace-nowrap">({opportunity.reviewCount || '1.8k'} Reviews)</span>
             </button>
 
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                <img src="https://i.pravatar.cc/100?img=1" className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" alt="Employee" />
-                <img src="https://i.pravatar.cc/100?img=11" className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" alt="Employee" />
-                <img src="https://i.pravatar.cc/100?img=33" className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" alt="Employee" />
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-[#e0ddff] text-[#6366f1] text-[10px] font-bold flex items-center justify-center shadow-sm z-10">
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2 shrink-0">
+                <img src="https://i.pravatar.cc/100?img=1" className="w-7 h-7 rounded-full border-2 border-white object-cover shadow-sm" alt="Employee" />
+                <img src="https://i.pravatar.cc/100?img=11" className="w-7 h-7 rounded-full border-2 border-white object-cover shadow-sm" alt="Employee" />
+                <img src="https://i.pravatar.cc/100?img=33" className="w-7 h-7 rounded-full border-2 border-white object-cover shadow-sm" alt="Employee" />
+                <div className="w-7 h-7 rounded-full border-2 border-white bg-[#e0ddff] text-[#6366f1] text-[9px] font-bold flex items-center justify-center shadow-sm z-10">
                   +{opportunity.employeesRecommend || '1.2k'}
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="text-[#8c8c8c] text-[11px] leading-tight">employees</span>
-                <span className="text-[#8c8c8c] text-[11px] leading-tight">recommend</span>
+                <span className="text-[#8c8c8c] text-[10px] leading-tight">employees</span>
+                <span className="text-[#8c8c8c] text-[10px] leading-tight">recommend</span>
               </div>
             </div>
           </div>
