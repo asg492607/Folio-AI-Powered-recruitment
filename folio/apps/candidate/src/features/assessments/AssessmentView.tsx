@@ -4,11 +4,13 @@ import { PageHeader } from '../../components/PageHeader';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AssessmentReport } from './AssessmentReport';
 import { useCandidateStore } from '../../store/candidateStore';
+import { useApplicationStore } from '../../store/applicationStore';
 import { assessmentApi } from '../../api/backend';
 
 interface LocationState {
   jobId?: string;
   companyName?: string;
+  applicationId?: string;
 }
 
 export function AssessmentView() {
@@ -20,6 +22,8 @@ export function AssessmentView() {
   const candidateId = candidate.id || 'candidate_123';
   
   const jobId = parseInt(state?.jobId || '0') || 0;
+  const applicationId = state?.applicationId;
+  const updateApplication = useApplicationStore(s => s.updateApplication);
 
   useEffect(() => {
     if (!jobId) {
@@ -115,6 +119,11 @@ export function AssessmentView() {
       } else {
         // Trigger final analysis
         await assessmentApi.triggerAnalysis(candidateId).catch(e => console.warn(e));
+        
+        if (applicationId) {
+          await updateApplication(applicationId, { status: 'Assessment Completed' }).catch(e => console.warn('Failed to update status', e));
+        }
+        
         setIsFinished(true);
       }
     } catch (err) {

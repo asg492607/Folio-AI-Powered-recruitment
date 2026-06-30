@@ -10,6 +10,7 @@ interface ApplicationState {
   applications: Application[];
   fetchApplications: (candidateId: string) => Promise<void>;
   addApplication: (application: Application) => Promise<void>;
+  updateApplication: (id: string, patch: Partial<Application>) => Promise<void>;
 }
 
 export const useApplicationStore = create<ApplicationState>((set) => ({
@@ -35,6 +36,17 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
       set((state) => ({ applications: [application, ...state.applications] }));
     } catch (e) {
       console.error('[ApplicationStore] Failed to submit application:', e);
+    }
+  },
+
+  updateApplication: async (id, patch) => {
+    try {
+      await axios.patch(`${COLLECTIONS_URL}/${id}`, patch);
+      set((state) => ({
+        applications: state.applications.map(app => app.id === id ? { ...app, ...patch } : app)
+      }));
+    } catch (e) {
+      console.error('[ApplicationStore] Failed to update application:', e);
     }
   },
 }));

@@ -250,7 +250,7 @@ export function ApplicationTracking() {
                     </div>
                   </div>
                   <button 
-                    onClick={() => navigate('/assessments', { state: { jobId: selectedOpp.id, companyName: selectedOpp.companyName } })}
+                    onClick={() => navigate('/assessments', { state: { jobId: selectedOpp.id, companyName: selectedOpp.companyName, applicationId: selectedApp.id } })}
                     className="shrink-0 bg-[#5B4FE9] hover:bg-[#5B4FE9]/90 text-white rounded-xl px-5 py-2.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors shadow-md"
                   >
                     Start Assessment <ArrowRight size={14} />
