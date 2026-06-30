@@ -68,6 +68,11 @@ export interface Opportunity {
   applyUrl?: string;
   logo?: string;
   tags?: string[];
+  rating?: number;
+  reviewCount?: number;
+  employeesRecommend?: string;
+  testimonial?: string;
+  testimonialAuthor?: string;
 }
 
 export interface Application {

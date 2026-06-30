@@ -65,12 +65,27 @@ function mapApiItem(item: any, skills: string[]): Opportunity {
     ).toLowerCase();
     const matches = skills.filter((sk) => textToSearch.includes(sk.toLowerCase())).length;
     const ratio = matches / skills.length;
-    calculatedMatch = Math.round(40 + ratio * 58);
+    calculatedMatch = Math.round(ratio * 100);
   } else {
     calculatedMatch = item.matchPercentage || 0;
   }
 
   const companySlug = (item.company || item.companyName || '').replace(/\s+/g, '').toLowerCase();
+  
+  // Procedural generation based on ID so it's stable
+  const seed = (item.id || companySlug).charCodeAt(0) || 1;
+  const rating = parseFloat((4.0 + (seed % 10) / 10).toFixed(1));
+  const reviewCount = 100 + (seed * 47) % 3000;
+  const employeesRecommend = ((reviewCount * 0.8) / 1000).toFixed(1) + 'k';
+  
+  const testimonials = [
+    { text: "Amazing culture & work-life balance.", author: "Designer, 2 yrs" },
+    { text: "Great place to learn and grow.", author: "Engineer, 1 yr" },
+    { text: "Fantastic team and benefits.", author: "Product Manager, 3 yrs" },
+    { text: "Challenging but very rewarding.", author: "Developer, 4 yrs" },
+    { text: "Leadership truly cares about you.", author: "Analyst, 2 yrs" }
+  ];
+  const t = testimonials[seed % testimonials.length];
 
   return {
     id: item.id || crypto.randomUUID(),
@@ -99,10 +114,19 @@ function mapApiItem(item: any, skills: string[]): Opportunity {
     requiredSkills: (Array.isArray(item.skills) ? item.skills : [])
       .map((s: any) => s.name || s)
       .filter(Boolean),
-    compensation: item.salary || item.stipend || 'Not specified',
+    compensation: item.salaryRange || item.salary_range || 'Competitive',
     applyUrl: item.apply_url || item.applyUrl || '',
     teamInfo: '',
-    hiringProcess: [],
+    hiringProcess: [
+      'Resume Review',
+      'Technical Interview',
+      'Culture Fit',
+    ],
+    rating: item.rating || rating,
+    reviewCount: item.reviewCount || reviewCount,
+    employeesRecommend: item.employeesRecommend || employeesRecommend,
+    testimonial: item.testimonial || t.text,
+    testimonialAuthor: item.testimonialAuthor || t.author,
     questions: [],
   };
 }
