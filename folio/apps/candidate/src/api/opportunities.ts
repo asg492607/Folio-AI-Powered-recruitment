@@ -53,18 +53,24 @@ async function persistToFirestore(ops: Opportunity[]): Promise<void> {
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 
-function mapApiItem(item: any, skills: string[]): Opportunity {
+function mapApiItem(item: any, candidateSkills: string[]): Opportunity {
   let calculatedMatch = 0;
-  if (skills && skills.length > 0) {
+  
+  const rawSkills = item.skills || item.requiredSkills || item.keywords || [];
+  const parsedSkills = (Array.isArray(rawSkills) ? rawSkills : [])
+    .map((s: any) => s.name || s)
+    .filter(Boolean);
+
+  if (candidateSkills && candidateSkills.length > 0) {
     const textToSearch = (
       (item.description || '') +
       ' ' +
       (item.title || '') +
       ' ' +
-      (Array.isArray(item.skills) ? item.skills.map((s: any) => s.name || s).join(' ') : '')
+      parsedSkills.join(' ')
     ).toLowerCase();
-    const matches = skills.filter((sk) => textToSearch.includes(sk.toLowerCase())).length;
-    const ratio = matches / skills.length;
+    const matches = candidateSkills.filter((sk) => textToSearch.includes(sk.toLowerCase())).length;
+    const ratio = matches / candidateSkills.length;
     calculatedMatch = Math.round(ratio * 100);
   } else {
     calculatedMatch = item.matchPercentage || 0;
@@ -107,13 +113,9 @@ function mapApiItem(item: any, skills: string[]): Opportunity {
     postedAt: item.created_at
       ? new Date(item.created_at).toLocaleDateString()
       : new Date().toLocaleDateString(),
-    tags: (Array.isArray(item.skills) ? item.skills : [])
-      .map((s: any) => s.name || s)
-      .filter(Boolean),
+    tags: parsedSkills,
     description: item.description || 'No description provided.',
-    requiredSkills: (Array.isArray(item.skills) ? item.skills : [])
-      .map((s: any) => s.name || s)
-      .filter(Boolean),
+    requiredSkills: parsedSkills,
     compensation: item.salaryRange || item.salary_range || 'Competitive',
     applyUrl: item.apply_url || item.applyUrl || '',
     teamInfo: '',
@@ -201,7 +203,7 @@ export async function fetchOpportunities(skills?: string[]): Promise<Opportunity
       ).toLowerCase();
       const matches = skills.filter((sk) => textToSearch.includes(sk.toLowerCase())).length;
       const ratio = matches / skills.length;
-      return { ...op, matchPercentage: Math.round(40 + ratio * 58) };
+      return { ...op, matchPercentage: Math.round(ratio * 100) };
     });
 
     console.log(`[opportunities] Serving ${enriched.length} jobs from Firestore cache.`);
