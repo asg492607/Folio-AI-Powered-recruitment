@@ -140,7 +140,7 @@ export function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
       </div>
 
       {/* Match Percentage Footer */}
-      {opportunity.matchPercentage !== undefined && opportunity.matchPercentage > 0 && (
+      {opportunity.matchPercentage !== undefined && opportunity.matchPercentage >= 0 && (
         <Link 
           to={`/opportunities/${opportunity.id}`}
           className="w-full bg-[#eef0ff] hover:bg-[#e0e4ff] transition-colors p-4 flex items-center justify-between group/match"

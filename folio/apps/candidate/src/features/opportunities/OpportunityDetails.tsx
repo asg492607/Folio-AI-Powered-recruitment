@@ -175,7 +175,7 @@ export function OpportunityDetails() {
           {/* Right Column (Sidebar) */}
           <aside className="w-[380px] border-l border-chalk-200 shrink-0">
             <div className="sticky top-24 px-8 py-10 lg:px-10 lg:py-12">
-              {opportunity.matchPercentage && (
+              {opportunity.matchPercentage !== undefined && (
                 <div className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-[#c7d2fe] bg-[#eef2ff] px-3.5 py-1.5 text-[12px] font-bold tracking-wider text-indigo font-mono">
                   <Sparkles className="h-4 w-4" />
                   {opportunity.matchPercentage}% MATCH
