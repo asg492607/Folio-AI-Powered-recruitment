@@ -36,9 +36,9 @@ export function OpportunityDetails() {
         opportunityId: opportunity.id,
         resumeUrl: candidate.portfolioLinks[0]?.url || '',
         answers: [],
-        status: 'applied',
+        status: 'Applied',
         appliedAt: new Date().toISOString(),
-        statusHistory: [{ status: 'applied', timestamp: new Date().toISOString() }],
+        statusHistory: [{ status: 'Applied', timestamp: new Date().toISOString() }],
       });
       toast.success('Marked as applied in your tracker!');
     }

@@ -6,30 +6,32 @@ const tones: Record<
   ApplicationStatus,
   'indigo' | 'mint' | 'orange' | 'lavender' | 'chalk'
 > = {
-  applied: 'indigo',
-  viewed: 'chalk',
-  under_review: 'orange',
-  shortlisted: 'mint',
-  interview_scheduled: 'mint',
-  selected: 'mint',
-  rejected: 'orange',
+  'Applied': 'indigo',
+  'Matched': 'chalk',
+  'Assessment Completed': 'orange',
+  'Shortlisted': 'mint',
+  'Interviewing': 'mint',
+  'Offered': 'mint',
+  'Hired': 'mint',
+  'Withdrawn': 'orange',
 };
 
 const dotColors: Record<ApplicationStatus, string> = {
-  applied: 'bg-indigo-500',
-  viewed: 'bg-navy/40',
-  under_review: 'bg-orange-500',
-  shortlisted: 'bg-mint-500',
-  interview_scheduled: 'bg-mint-500',
-  selected: 'bg-mint-500',
-  rejected: 'bg-orange-500',
+  'Applied': 'bg-indigo-500',
+  'Matched': 'bg-navy/40',
+  'Assessment Completed': 'bg-orange-500',
+  'Shortlisted': 'bg-mint-500',
+  'Interviewing': 'bg-mint-500',
+  'Offered': 'bg-mint-500',
+  'Hired': 'bg-mint-500',
+  'Withdrawn': 'bg-orange-500',
 };
 
 export function StatusBadge({ status }: { status: ApplicationStatus }) {
   return (
     <Badge tone={tones[status]}>
       <span className="relative flex h-2 w-2 items-center justify-center">
-        {['applied', 'under_review'].includes(status) && (
+        {['Applied', 'Assessment Completed'].includes(status) && (
           <span
             className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${dotColors[status]}`}
           />
@@ -38,7 +40,7 @@ export function StatusBadge({ status }: { status: ApplicationStatus }) {
           className={`relative inline-flex h-1.5 w-1.5 rounded-full ${dotColors[status]}`}
         />
       </span>
-      {status.replace(/_/g, ' ')}
+      {status}
     </Badge>
   );
 }

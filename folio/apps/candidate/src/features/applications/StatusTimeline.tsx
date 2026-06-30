@@ -2,16 +2,18 @@ import { Check } from 'lucide-react';
 import type { ApplicationStatus } from '../../types';
 
 const stages: { status: ApplicationStatus; label: string }[] = [
-  { status: 'applied', label: 'Applied' },
-  { status: 'under_review', label: 'Under Review' },
-  { status: 'shortlisted', label: 'Shortlisted' },
-  { status: 'interview_scheduled', label: 'Interview' },
-  { status: 'selected', label: 'Offer' },
+  { status: 'Applied', label: 'Applied' },
+  { status: 'Matched', label: 'Matched' },
+  { status: 'Assessment Completed', label: 'Assessment' },
+  { status: 'Shortlisted', label: 'Shortlisted' },
+  { status: 'Interviewing', label: 'Interview' },
+  { status: 'Offered', label: 'Offered' },
+  { status: 'Hired', label: 'Hired' },
 ];
 
 export function StatusTimeline({ current }: { current: ApplicationStatus }) {
   const currentIndex = stages.findIndex((s) => s.status === current);
-  const isRejected = current === 'rejected';
+  const isRejected = current === 'Withdrawn';
 
   return (
     <div className="mt-8">
