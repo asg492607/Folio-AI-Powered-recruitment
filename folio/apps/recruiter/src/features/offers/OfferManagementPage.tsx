@@ -358,13 +358,13 @@ export default function OfferManagementPage() {
           </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-5xl font-light text-[#00C9A7]" style={styles.displayFont}>
-              88%
+              --%
             </span>
             <span className="text-xs text-slate-500 font-sans">ytd benchmark</span>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-xs text-slate-400">
             <TrendingUp className="w-3.5 h-3.5 text-[#00C9A7]" />
-            <span className="text-[#00C9A7]">1.2% above company average</span>
+            <span className="text-[#00C9A7]">Awaiting data</span>
           </div>
         </div>
 
@@ -375,7 +375,7 @@ export default function OfferManagementPage() {
           </span>
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-5xl font-light text-[#5B4FE9]" style={styles.displayFont}>
-              94%
+              --%
             </span>
             <span className="text-xs text-slate-500 font-sans">portfolio precision</span>
           </div>
