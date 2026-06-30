@@ -35,7 +35,7 @@ export function ApplicationForm() {
   const form = useForm<ApplicationValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      resumeUrl: '',
+      resumeUrl: 'Avni_Sharma_Resume_2025.pdf',
       portfolioAttachmentUrl: candidate.portfolioLinks[0]?.url || '',
     },
   });
