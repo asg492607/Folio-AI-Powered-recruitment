@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
+import { EmptyState } from '../../components/EmptyState';
 import { useApplicationStore } from '../../store/applicationStore';
 import { useOpportunityStore } from '../../store/opportunityStore';
 import type { Application, ApplicationStatus } from '../../types';
@@ -88,31 +89,38 @@ export function ApplicationTracking() {
       <div className="p-8 pb-20 animate-slide-up">
         <h2 className="font-sans text-[22px] font-semibold text-navy mb-6">Applications</h2>
 
-        <div className="app-tracking-layout">
-          {/* Left: Application list */}
-          <div className="app-list">
-            {applications.map((app) => {
-              const opp = opportunities.find((o) => o.id === app.opportunityId);
-              const isSelected = app.id === selectedId;
-              const isWithdrawn = withdrawnIds.includes(app.id);
-              return (
-                <button
-                  key={app.id}
-                  className={`app-list-item ${isSelected ? 'app-list-item--active' : ''}`}
-                  onClick={() => { setSelectedId(app.id); setShowWithdrawConfirm(false); }}
-                >
-                  <div className="app-list-item-info">
-                    <span className="app-list-item-title">{opp?.title ?? 'Role'}</span>
-                    <span className="app-list-item-company">{opp?.companyName ?? 'Company'}</span>
-                    <span className="app-list-item-date">Applied {formatDate(app.appliedAt)}</span>
-                  </div>
-                  <span className={`app-status-badge ${isWithdrawn ? 'app-status-badge--withdrawn' : statusColors[app.status]}`}>
-                    {isWithdrawn ? 'WITHDRAWN' : statusLabels[app.status]}
-                  </span>
-                </button>
-              );
-            })}
+        {applications.length === 0 ? (
+          <div className="mt-10">
+            <EmptyState title="No Applications Yet" icon={Sparkles}>
+              You haven't applied to any roles. Head over to the Opportunities board to find your next great role!
+            </EmptyState>
           </div>
+        ) : (
+          <div className="app-tracking-layout">
+            {/* Left: Application list */}
+            <div className="app-list">
+              {applications.map((app) => {
+                const opp = opportunities.find((o) => o.id === app.opportunityId);
+                const isSelected = app.id === selectedId;
+                const isWithdrawn = withdrawnIds.includes(app.id);
+                return (
+                  <button
+                    key={app.id}
+                    className={`app-list-item ${isSelected ? 'app-list-item--active' : ''}`}
+                    onClick={() => { setSelectedId(app.id); setShowWithdrawConfirm(false); }}
+                  >
+                    <div className="app-list-item-info">
+                      <span className="app-list-item-title">{opp?.title ?? 'Role'}</span>
+                      <span className="app-list-item-company">{opp?.companyName ?? 'Company'}</span>
+                      <span className="app-list-item-date">Applied {formatDate(app.appliedAt)}</span>
+                    </div>
+                    <span className={`app-status-badge ${isWithdrawn ? 'app-status-badge--withdrawn' : statusColors[app.status]}`}>
+                      {isWithdrawn ? 'WITHDRAWN' : statusLabels[app.status]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
           {/* Right: Detail panel */}
           {selectedApp && selectedOpp && (
@@ -264,6 +272,7 @@ export function ApplicationTracking() {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

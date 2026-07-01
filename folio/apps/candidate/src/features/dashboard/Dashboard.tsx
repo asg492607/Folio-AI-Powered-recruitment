@@ -1,9 +1,10 @@
-import { Bookmark, Sparkles, ChevronRight } from 'lucide-react';
+import { Bookmark, Sparkles, ChevronRight, Briefcase, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCandidateStore } from '../../store/candidateStore';
 import { useOpportunityStore } from '../../store/opportunityStore';
 import { useApplicationStore } from '../../store/applicationStore';
 import { PageHeader } from '../../components/PageHeader';
+import { EmptyState } from '../../components/EmptyState';
 
 export function Dashboard() {
   const candidate = useCandidateStore((state) => state.candidate);
@@ -128,9 +129,11 @@ export function Dashboard() {
                   </Link>
                 );
               }) : (
-                <div className="col-span-2 text-center py-12 text-navy/50">
-                  <p className="mb-2">No matches yet.</p>
-                  <Link to="/opportunities" className="text-sm text-indigo hover:underline">Browse all opportunities →</Link>
+                <div className="col-span-2">
+                  <EmptyState title="No matches yet" icon={Sparkles}>
+                    We couldn't find any opportunities matching your skills. Connect your portfolio to improve matches, or{' '}
+                    <Link to="/opportunities" className="text-indigo hover:underline font-medium">browse all opportunities</Link>.
+                  </EmptyState>
                 </div>
               )}
             </div>

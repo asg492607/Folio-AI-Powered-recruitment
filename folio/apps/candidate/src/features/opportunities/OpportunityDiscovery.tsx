@@ -305,8 +305,8 @@ export function OpportunityDiscovery() {
                   AI Recommended for you
                 </div>
                 <div className="grid gap-5 md:grid-cols-3">
-                  {aiRecommended.map((opportunity) => (
-                    <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+                  {aiRecommended.map((opportunity, index) => (
+                    <OpportunityCard key={opportunity.id} opportunity={opportunity} index={index} />
                   ))}
                 </div>
               </div>
@@ -477,8 +477,8 @@ export function OpportunityDiscovery() {
                     : 'grid-cols-1'
                 }`}
               >
-                {filtered.map((opportunity) => (
-                  <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+                {filtered.map((opportunity, index) => (
+                  <OpportunityCard key={opportunity.id} opportunity={opportunity} index={index} />
                 ))}
               </div>
             )}

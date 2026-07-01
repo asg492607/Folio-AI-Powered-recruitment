@@ -6,30 +6,36 @@ import type { Opportunity } from '../../types';
 import { trackEvent } from '../../utils/analytics';
 import React, { useState } from 'react';
 
-export function OpportunityCard({ opportunity }: { opportunity: Opportunity }) {
-  const savedIds = useOpportunityStore((state) => state.savedIds);
+export function OpportunityCard({ 
+  opportunity,
+  index = 0
+}: { 
+  opportunity: Opportunity;
+  index?: number;
+}) {
   const toggleSaved = useOpportunityStore((state) => state.toggleSaved);
-  const saved = savedIds.includes(opportunity.id);
-
-  const applications = useApplicationStore((state) => state.applications);
-  const applied = applications.some((app) => app.opportunityId === opportunity.id);
-
-  const initial = opportunity.companyName.charAt(0) || 'C';
+  const savedIds = useOpportunityStore((state) => state.savedIds);
   
-  // Local state for interactive rating (mock for now)
+  const saved = savedIds.includes(opportunity.id);
+  const applied = useApplicationStore(state => state.applications.some(a => a.opportunityId === opportunity.id));
+  const initial = (opportunity.companyName || 'C').charAt(0).toUpperCase();
+
   const [hasRated, setHasRated] = useState(false);
 
   const handleRate = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setHasRated(!hasRated);
     if (!hasRated) {
-      setHasRated(true);
-      trackEvent('opportunity_rated', { opportunityId: opportunity.id });
+      trackEvent('opportunity_rated', { opportunityId: opportunity.id, rating: 5 });
     }
   };
 
   return (
-    <article className="group relative flex flex-col h-full rounded-3xl border border-chalk-200 bg-white overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-card w-full">
+    <article 
+      className="group relative flex flex-col h-full rounded-3xl border border-chalk-200 bg-white overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-card w-full animate-slide-up"
+      style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}
+    >
       <div className="p-6 flex flex-col flex-1">
         {/* Header: Logo and Bookmark */}
         <div className="flex items-start justify-between mb-6">
