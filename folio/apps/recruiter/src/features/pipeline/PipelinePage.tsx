@@ -13,8 +13,54 @@ export default function PipelinePage() {
   const { items: jobs } = useCollection<Job>('jobs');
   
   const [selectedJobId, setSelectedJobId] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [notes, setNotes] = useState('');
+  
+  // Drag and Drop State
+  const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<Candidate['status'] | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, candidate: Candidate) => {
+    setDraggedCandidate(candidate);
+    e.dataTransfer.effectAllowed = 'move';
+    // Small delay to allow the drag ghost to generate before adding styles
+    setTimeout(() => {
+      if (e.target instanceof HTMLElement) {
+        e.target.classList.add('opacity-50');
+      }
+    }, 0);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggedCandidate(null);
+    setDragOverStage(null);
+    if (e.target instanceof HTMLElement) {
+      e.target.classList.remove('opacity-50');
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent, stage: Candidate['status']) => {
+    e.preventDefault();
+    setDragOverStage(null);
+    if (!draggedCandidate || draggedCandidate.status === stage) {
+      setDraggedCandidate(null);
+      return;
+    }
+    
+    const newHistory = [...((draggedCandidate as any).statusHistory || []), { status: stage, timestamp: new Date().toISOString() }];
+    
+    await updateItem(draggedCandidate.id, { 
+      status: stage,
+      statusHistory: newHistory
+    } as any);
+    
+    if (selectedCandidate?.id === draggedCandidate.id) {
+      setSelectedCandidate({ ...selectedCandidate, status: stage, statusHistory: newHistory } as any);
+    }
+    
+    setDraggedCandidate(null);
+  };
 
   const advanceCandidate = async (candidate: Candidate) => {
     const currentIndex = stages.indexOf(candidate.status);
@@ -58,19 +104,31 @@ export default function PipelinePage() {
           </p>
         </div>
 
-        {/* Job Requisition Filter Dropdown */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="folio-mono text-[9px] uppercase tracking-wider text-[#6D6B8D] font-bold">Filter Job:</span>
-          <select
-            value={selectedJobId}
-            onChange={(e) => setSelectedJobId(e.target.value)}
-            className="input py-2 px-3 text-xs font-bold cursor-pointer min-w-[180px] bg-white border-[#ECE8E2] rounded-xl shadow-sm"
-          >
-            <option value="">All Jobs</option>
-            {jobs.map(job => (
-              <option key={job.id} value={job.id}>{job.title}</option>
-            ))}
-          </select>
+        {/* Filters */}
+        <div className="flex items-center gap-3 flex-shrink-0 bg-[#FCFBF9] p-2 rounded-2xl border border-[#ECE8E2] shadow-sm">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search candidate..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-3 pr-3 py-1.5 text-xs font-sans w-[180px] bg-white border border-[#ECE8E2] rounded-xl shadow-sm focus:outline-none focus:border-brand-purple"
+            />
+          </div>
+          <div className="h-4 w-px bg-[#ECE8E2]" />
+          <div className="flex items-center gap-2">
+            <span className="folio-mono text-[9px] uppercase tracking-wider text-[#6D6B8D] font-bold">Job:</span>
+            <select
+              value={selectedJobId}
+              onChange={(e) => setSelectedJobId(e.target.value)}
+              className="py-1.5 px-2 text-xs font-bold cursor-pointer min-w-[150px] bg-white border border-[#ECE8E2] rounded-xl shadow-sm focus:outline-none"
+            >
+              <option value="">All Requisitions</option>
+              {jobs.map(job => (
+                <option key={job.id} value={job.id}>{job.title}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </header>
 
@@ -140,11 +198,14 @@ export default function PipelinePage() {
       {/* Kanban Board */}
     <section className="flex gap-4 pb-6 overflow-x-auto select-none w-full scrollbar-thin scrollbar-thumb-stone-200">
       {stages.map((stage) => {
-        // Filter candidates by stage and active job requisition selection
+        // Filter candidates by stage, job requisition, and search query
         const stageCandidates = candidates.filter((candidate) => {
           const matchesStage = candidate.status === stage;
           const matchesJob = !selectedJobId || candidate.jobId === selectedJobId;
-          return matchesStage && matchesJob;
+          const matchesSearch = !searchQuery || 
+            candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            candidate.jobTitle.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchesStage && matchesJob && matchesSearch;
         });
 
         const stageColorClass = 
@@ -161,7 +222,25 @@ export default function PipelinePage() {
         return (
           <div 
             key={stage} 
-            className="flex flex-col w-[280px] min-w-[260px] max-w-[300px] flex-shrink-0 bg-[#FCFBF9] rounded-xl p-4 border border-[#ECE8E2] shadow-sm"
+            className={`flex flex-col w-[280px] min-w-[260px] max-w-[300px] flex-shrink-0 bg-[#FCFBF9] rounded-xl p-4 border shadow-sm transition-all duration-300 ${dragOverStage === stage ? 'border-brand-purple bg-brand-purple/5 shadow-md scale-[1.02]' : 'border-[#ECE8E2]'}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              if (draggedCandidate && draggedCandidate.status !== stage) {
+                setDragOverStage(stage);
+              }
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              // Only reset if we are leaving the column itself, not entering a child element
+              if (e.currentTarget === e.target) {
+                setDragOverStage(null);
+              }
+            }}
+            onDrop={(e) => handleDrop(e, stage)}
           >
             {/* Column Header */}
             <div className="mb-4 flex items-center justify-between border-b border-[#ECE8E2] pb-2.5 px-1">
@@ -187,8 +266,11 @@ export default function PipelinePage() {
                 stageCandidates.map((candidate) => (
                   <article
                     key={candidate.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, candidate)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => handleCardClick(candidate)}
-                    className="rounded-xl border border-[#ECE8E2] bg-white p-3.5 hover:translate-y-[-3px] transition-all duration-200 shadow-sm hover:shadow-md hover:border-brand-purple/35 flex flex-col justify-between min-h-[185px] cursor-pointer"
+                    className="rounded-xl border border-[#ECE8E2] bg-white p-3.5 hover:translate-y-[-3px] transition-all duration-200 shadow-sm hover:shadow-md hover:border-brand-purple/35 flex flex-col justify-between min-h-[185px] cursor-grab active:cursor-grabbing"
                   >
                     <div>
                       {/* Top: Avatar circle & score circle badge */}

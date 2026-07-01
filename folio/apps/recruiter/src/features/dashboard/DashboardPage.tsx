@@ -91,6 +91,7 @@ export default function DashboardPage() {
       {/* Metrics Grid */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Metric 
+          index={0}
           icon={BriefcaseBusiness} 
           label="Active Job Requisitions" 
           value={activeJobs.toString()} 
@@ -100,6 +101,7 @@ export default function DashboardPage() {
           onClick={() => navigate('/jobs')}
         />
         <Metric 
+          index={1}
           icon={UsersRound} 
           label="Total Sourced Candidates" 
           value={candidates.length.toString()} 
@@ -109,6 +111,7 @@ export default function DashboardPage() {
           onClick={() => navigate('/pipeline')}
         />
         <Metric 
+          index={2}
           icon={CalendarClock} 
           label="Scheduled Interviews" 
           value={interviews.length.toString()} 
@@ -118,6 +121,7 @@ export default function DashboardPage() {
           onClick={() => navigate('/interviews')}
         />
         <Metric 
+          index={3}
           icon={CheckCircle2} 
           label="Sent Offers Desk" 
           value={offersCount.toString()} 
@@ -148,10 +152,11 @@ export default function DashboardPage() {
             </div>
             
             <div className="grid gap-4 sm:grid-cols-3">
-              {jobs.slice(0, 3).map((job) => (
+              {jobs.slice(0, 3).map((job, index) => (
                 <div 
                   key={job.id} 
-                  className="rounded-xl border border-[#ECE8E2] bg-white p-3.5 hover:border-brand-purple hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between min-h-[160px] shadow-xs cursor-pointer"
+                  className="rounded-xl border border-[#ECE8E2] bg-white p-3.5 hover:border-brand-purple hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between min-h-[160px] shadow-xs cursor-pointer animate-slide-up"
+                  style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}
                   onClick={() => navigate('/jobs')}
                 >
                   <div className="space-y-1">
@@ -383,7 +388,7 @@ export default function DashboardPage() {
   );
 }
 
-function Metric({ icon: Icon, label, value, hint, trend, trendColor, onClick }: { icon: ElementType; label: string; value: string; hint: string; trend: string; trendColor: string; onClick?: () => void }) {
+function Metric({ icon: Icon, label, value, hint, trend, trendColor, onClick, index = 0 }: { icon: ElementType; label: string; value: string; hint: string; trend: string; trendColor: string; onClick?: () => void; index?: number }) {
   let indicatorDotColor = 'bg-brand-navy';
   let trendClass = 'text-[#6D6B8D] bg-stone-50 border-[#ECE8E2]';
   
@@ -403,7 +408,8 @@ function Metric({ icon: Icon, label, value, hint, trend, trendColor, onClick }: 
 
   return (
     <div 
-      className="p-5 rounded-xl border border-[#ECE8E2] bg-white transition-all duration-300 card-hover flex flex-col justify-between h-full min-h-[115px] shadow-xs cursor-pointer hover:border-brand-purple/35"
+      className="rounded-2xl border border-[#ECE8E2] bg-white p-5 shadow-xs transition-all duration-300 card-hover flex flex-col justify-between min-h-[140px] cursor-pointer animate-slide-up"
+      style={{ animationDelay: `${index * 0.05}s`, animationFillMode: 'both' }}
       onClick={onClick}
     >
       <div className="flex items-center justify-between border-b border-stone-100 pb-2 mb-2.5">
