@@ -13,6 +13,8 @@ scraped.json
 seed_jobs.py
 seed_jobs.mjs
 seed_jobs.ps1
+*.db
+institutional.db
 
 # ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/

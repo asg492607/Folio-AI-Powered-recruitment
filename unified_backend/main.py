@@ -111,9 +111,17 @@ try:
 except Exception as e:
     print(f"Failed to mount Collections Router: {e}")
 
+# Mount Institutional API (SQLite-backed CRUD for the Folio Institutional frontend)
+try:
+    from institutional_api import router as institutional_router
+    app.include_router(institutional_router, prefix="/api/institutional", tags=["Institutional"])
+    print("Mounted Institutional API (SQLite).")
+except Exception as e:
+    print(f"Failed to mount Institutional API: {e}")
+
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "modules": ["communication", "assessment", "portfolio", "scraper"]}
+    return {"status": "healthy", "modules": ["communication", "assessment", "portfolio", "scraper", "institutional"]}
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
