@@ -63,6 +63,13 @@ app.mount("/local_storage", StaticFiles(directory=LOCAL_STORAGE_DIR), name="loca
 UPLOAD_DIR = os.path.join("/tmp", "uploads") if (os.path.exists("/tmp") and os.environ.get("VERCEL")) else "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+def get_fs_client():
+    try:
+        from firebase_admin import firestore
+        return firestore.client()
+    except Exception:
+        return None
+
 class UrlAnalyzeRequest(BaseModel):
     url: str
 
@@ -157,6 +164,22 @@ async def process_portfolio_job(job_id: str, content: str, source_label: str, ex
             db_job.results = report_data
             db_job.status = "completed"
             db.commit()
+
+        # Step 7: Persist report to Firestore for serverless multi-instance availability
+        fs = get_fs_client()
+        if fs:
+            try:
+                import datetime
+                fs.collection("portfolio_reports").document(job_id).set({
+                    "id": job_id,
+                    "status": "completed",
+                    "source_label": source_label,
+                    "results": report_data,
+                    "created_at": datetime.datetime.utcnow().isoformat()
+                })
+                print(f"Persisted portfolio report {job_id} to Firestore.")
+            except Exception as fs_err:
+                print(f"Firestore persistence warning: {fs_err}")
 
     except Exception as e:
         print(f"Error in background processing of job {job_id}: {e}")
@@ -510,6 +533,20 @@ async def analyze_url(
         source_label = f"Web Portfolio ({url[:30]}...)"
         content, extracted_images, extracted_links = await scrape_url_content(url)
 
+    # Register in Firestore for immediate state visibility
+    fs = get_fs_client()
+    if fs:
+        try:
+            import datetime
+            fs.collection("portfolio_reports").document(job_id).set({
+                "id": job_id,
+                "portfolio_url": url,
+                "status": "processing",
+                "created_at": datetime.datetime.utcnow().isoformat()
+            })
+        except Exception:
+            pass
+
     # Queue background analysis workflow
     background_tasks.add_task(
         process_portfolio_job,
@@ -527,16 +564,42 @@ async def analyze_url(
 async def get_report(job_id: str, db: Session = Depends(get_db)):
     """Retrieve report status and generated intelligence package."""
     db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
-    if not db_job:
-        raise HTTPException(status_code=404, detail="Job not found")
+    if db_job and db_job.status == "completed":
+        return {
+            "job_id": db_job.id,
+            "status": db_job.status,
+            "filename": db_job.filename,
+            "portfolio_url": db_job.portfolio_url,
+            "results": db_job.results
+        }
 
-    return {
-        "job_id": db_job.id,
-        "status": db_job.status,
-        "filename": db_job.filename,
-        "portfolio_url": db_job.portfolio_url,
-        "results": db_job.results
-    }
+    # Query Firestore for serverless multi-container state
+    fs = get_fs_client()
+    if fs:
+        try:
+            doc = fs.collection("portfolio_reports").document(job_id).get()
+            if doc.exists:
+                data = doc.to_dict()
+                return {
+                    "job_id": data.get("id", job_id),
+                    "status": data.get("status", "completed"),
+                    "filename": data.get("filename"),
+                    "portfolio_url": data.get("portfolio_url"),
+                    "results": data.get("results")
+                }
+        except Exception as fs_err:
+            print(f"Firestore get_report error: {fs_err}")
+
+    if db_job:
+        return {
+            "job_id": db_job.id,
+            "status": db_job.status,
+            "filename": db_job.filename,
+            "portfolio_url": db_job.portfolio_url,
+            "results": db_job.results
+        }
+
+    raise HTTPException(status_code=404, detail="Job not found")
 
 @app.get("/")
 async def get_index():
