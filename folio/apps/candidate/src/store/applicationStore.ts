@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import type { Application } from '../types';
 import { trackEvent } from '../utils/analytics';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-const COLLECTIONS_URL = `${API_BASE}/api/collections/candidates`;
+const COLLECTIONS_URL = `${API_BASE_URL}/api/collections/candidates`;
 
 interface ApplicationState {
   applications: Application[];

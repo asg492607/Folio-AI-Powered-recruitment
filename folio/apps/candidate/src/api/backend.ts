@@ -1,9 +1,5 @@
 import axios from 'axios';
-
-// Unified Backend API Base URL
-// For local development, it assumes the unified backend is running on port 8000.
-// In production, this should be replaced with the Render deployment URL via env vars.
-const API_BASE_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '';
+import { API_BASE_URL } from '../config/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL || '',

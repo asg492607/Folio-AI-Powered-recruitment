@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Send } from 'lucide-react';
 import { useCandidateStore } from '../../store/candidateStore';
+import { API_BASE_URL } from '../../config/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-const CHATS_URL = `${API_BASE}/api/collections/chats`;
+const CHATS_URL = `${API_BASE_URL}/api/collections/chats`;
 
 interface ChatMessage {
   id: string;

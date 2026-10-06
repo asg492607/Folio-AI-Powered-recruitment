@@ -1,5 +1,6 @@
 import type { Opportunity } from '../types';
 import { db } from '../lib/firebase';
+import { API_BASE_URL } from '../config/api';
 import {
   collection,
   doc,
@@ -11,7 +12,7 @@ import {
   limit,
 } from 'firebase/firestore';
 
-const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '';
+const API_BASE = API_BASE_URL;
 const JOB_SCRATCHER_URL = import.meta.env.VITE_SCRAPER_URL || (API_BASE ? `${API_BASE}/api/scraper` : '/api/scraper');
 const FIRESTORE_COLLECTION = 'opportunities';
 
