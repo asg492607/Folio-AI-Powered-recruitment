@@ -31,19 +31,37 @@ export function SignUp() {
   const form = useForm<SignUpValues>({ resolver: zodResolver(schema) });
 
   async function onSubmit(values: SignUpValues) {
-    // Create auth account with name — saves to Firestore immediately
-    const session = await signupWithEmail(values.email, toRole(role), values.password, values.name);
-    setSession(session.token, session.candidate);
-    // Also push name into the candidate store so it shows instantly
-    updateCandidate({ personalInfo: { ...session.candidate.personalInfo, name: values.name } });
-    toast.success('Welcome in. Let\'s shape your profile.');
-    navigate('/onboarding');
+    try {
+      // Create auth account with name — saves to Firestore immediately
+      const session = await signupWithEmail(values.email, toRole(role), values.password, values.name);
+      setSession(session.token, session.candidate);
+      // Also push name into the candidate store so it shows instantly
+      updateCandidate({ personalInfo: { ...session.candidate.personalInfo, name: values.name } });
+      toast.success('Welcome in. Let\'s shape your profile.');
+      navigate('/onboarding');
+    } catch (error: any) {
+      console.warn('Signup error:', error);
+      if (error?.code === 'auth/email-already-in-use') {
+        toast.error('An account with this email already exists. Please sign in instead.');
+      } else if (error?.code === 'auth/weak-password') {
+        toast.error('Password is too weak. Please choose a stronger password.');
+      } else {
+        toast.error(error?.message || 'Failed to create account. Please try again.');
+      }
+    }
   }
 
   async function googleSignup() {
-    const session = await loginWithGoogle();
-    setSession(session.token, session.candidate);
-    navigate('/onboarding');
+    try {
+      const session = await loginWithGoogle();
+      setSession(session.token, session.candidate);
+      navigate('/onboarding');
+    } catch (error: any) {
+      console.warn('Google signup error:', error);
+      if (error?.code !== 'auth/popup-closed-by-user') {
+        toast.error(error?.message || 'Google sign-in failed.');
+      }
+    }
   }
 
   return (

@@ -84,4 +84,8 @@ export const useOpportunityStore = create<OpportunityState>()(
 
     return () => clearInterval(interval);
   }
-}), { name: 'opportunity-storage' }));
+}),
+{
+  name: 'opportunity-storage',
+  partialize: (state) => ({ savedIds: state.savedIds }),
+}));

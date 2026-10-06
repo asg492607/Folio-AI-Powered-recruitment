@@ -91,21 +91,35 @@ def run_heuristic_analysis(text: str, filename: str, images: list = None) -> dic
     # ── Intelligent heuristic extraction for candidate profile fields ──────────
     lines = [l.strip() for l in text.split('\n') if l.strip()]
     guessed_name = ""
-    if lines:
-        first_line = lines[0]
-        if len(first_line) < 40 and not any(x in first_line.lower() for x in ["http", "portfolio", "resume", "cv", "page", "work"]):
-            guessed_name = first_line
+    
+    # Check for title/name patterns (e.g. Title: Project Atlas | Vaibhav Bariyar)
+    title_match = re.search(r'Title:\s*([^\|\n\-]+)[\|\-]\s*([^\n\r]+)', text, re.IGNORECASE)
+    if title_match:
+        part1 = title_match.group(1).strip()
+        part2 = title_match.group(2).strip()
+        guessed_name = part2 if len(part2) < 30 and not any(x in part2.lower() for x in ["http", "portfolio", "home"]) else part1
+    
+    if not guessed_name and lines:
+        for l in lines[:10]:
+            if not any(x in l.lower() for x in ["url:", "title:", "meta description:", "content:", "http"]) and len(l) < 30:
+                guessed_name = l
+                break
+
     if not guessed_name:
         guessed_name = filename.split('.')[0].replace('_', ' ').replace('-', ' ').title()
 
-    guessed_headline = "Creative & Design Professional"
-    for line in lines[:5]:
-        if any(x in line.lower() for x in ["designer", "developer", "engineer", "manager", "strategist", "illustrator"]):
-            if len(line) < 100:
-                guessed_headline = line
-                break
-
-    guessed_summary = text[:300].strip() + "..." if len(text) > 300 else text
+    guessed_headline = "Engineer, Designer & Builder"
+    meta_desc_match = re.search(r'Meta Description:\s*([^\n]+)', text, re.IGNORECASE)
+    if meta_desc_match:
+        guessed_summary = meta_desc_match.group(1).strip()
+        if "—" in guessed_summary or "-" in guessed_summary:
+            parts = re.split(r'[—\-]', guessed_summary)
+            if len(parts) > 1 and len(parts[1]) < 80:
+                guessed_headline = parts[1].strip().split('.')[0]
+    else:
+        # Fallback to first non-header lines
+        content_text = text.split("Content:")[-1] if "Content:" in text else text
+        guessed_summary = content_text[:300].strip() + "..." if len(content_text) > 300 else content_text
 
     # Extract years experience if mentioned
     exp_match = re.search(r'(\d+(?:\.\d+)?)\s*\+?\s*years?\s+(?:of\s+)?experience', text_lower)

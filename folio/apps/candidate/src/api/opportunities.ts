@@ -8,24 +8,26 @@ import {
   serverTimestamp,
   query,
   orderBy,
+  limit,
 } from 'firebase/firestore';
 
-const JOB_SCRATCHER_URL = 'https://job-scratcher.onrender.com';
+const JOB_SCRATCHER_URL = import.meta.env.VITE_SCRAPER_URL || '/api/scraper';
 const FIRESTORE_COLLECTION = 'opportunities';
 
 // ─── Firestore helpers ───────────────────────────────────────────────────────
 
-/** Read all cached opportunities from Firestore */
+/** Read cached opportunities from Firestore with sensible limit to ensure fast rendering */
 async function readFromFirestore(): Promise<Opportunity[]> {
   try {
-    const q = query(collection(db, FIRESTORE_COLLECTION), orderBy('postedAt', 'desc'));
+    const q = query(collection(db, FIRESTORE_COLLECTION), orderBy('postedAt', 'desc'), limit(150));
     const snap = await getDocs(q);
     if (snap.empty) return [];
     return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Opportunity));
   } catch {
-    // If order-by fails (no index), fall back to unordered
+    // If order-by fails (no index), fall back to unordered with limit
     try {
-      const snap = await getDocs(collection(db, FIRESTORE_COLLECTION));
+      const q = query(collection(db, FIRESTORE_COLLECTION), limit(150));
+      const snap = await getDocs(q);
       if (snap.empty) return [];
       return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Opportunity));
     } catch {

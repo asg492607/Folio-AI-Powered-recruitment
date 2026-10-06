@@ -12,9 +12,9 @@ const api = axios.create({
   },
 });
 
-// External Portfolio System API
+// Portfolio System API (Routed to unified backend portfolio pod)
 const portfolioAxios = axios.create({
-  baseURL: 'https://portfolio-intelligencesystem.onrender.com',
+  baseURL: import.meta.env.VITE_PORTFOLIO_API_URL || `${API_BASE_URL}/api/portfolio`,
   headers: {
     'Content-Type': 'application/json',
   },

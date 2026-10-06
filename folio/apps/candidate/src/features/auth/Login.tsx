@@ -24,13 +24,26 @@ export function Login() {
   });
 
   async function finishLogin(values?: LoginValues) {
-    const session = values
-      ? await loginWithEmail(values.email, values.password)
-      : await loginWithGoogle();
-    setSession(session.token, session.candidate);
-    trackSessionStart();
-    toast.success('You’re back.');
-    navigate('/dashboard');
+    try {
+      const session = values
+        ? await loginWithEmail(values.email, values.password)
+        : await loginWithGoogle();
+      setSession(session.token, session.candidate);
+      trackSessionStart();
+      toast.success('You’re back.');
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.warn('Login error:', error);
+      if (error?.code === 'auth/invalid-credential' || error?.code === 'auth/user-not-found' || error?.code === 'auth/wrong-password') {
+        toast.error('Invalid email or password. If you do not have an account yet, please click "Create account" below.');
+      } else if (error?.code === 'auth/too-many-requests') {
+        toast.error('Access temporarily disabled due to too many failed attempts. Please reset your password or try again in a few minutes.');
+      } else if (error?.code === 'auth/popup-closed-by-user') {
+        toast.error('Google sign-in was cancelled.');
+      } else {
+        toast.error(error?.message || 'Login failed. Please check your credentials.');
+      }
+    }
   }
 
   return (

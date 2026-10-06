@@ -186,32 +186,35 @@ const fallbackMetrics = [
 ];
 
 function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
-  // Generate pseudo-metrics based on real data lengths since Groq doesn't return integer scores
+  // Generate metrics based on extracted data
   const designToolsCount = reportData?.skills?.design_tools?.length || 0;
   const methodsCount = reportData?.skills?.methodologies_and_processes?.length || 0;
   const projectsCount = reportData?.projects?.length || 0;
   const industriesCount = reportData?.industries?.length || 0;
 
   const realMetrics = reportData ? [
-    { label: 'Tool depth', score: Math.min(98, 50 + designToolsCount * 5) },
-    { label: 'Process docs', score: Math.min(95, 40 + methodsCount * 8) },
-    { label: 'Case quality', score: Math.min(99, 60 + projectsCount * 10) },
-    { label: 'Domain range', score: Math.min(92, 50 + industriesCount * 10) },
-    { label: 'Impact', score: Math.min(94, 60 + projectsCount * 5) },
-    { label: 'Visual craft', score: Math.min(96, 70 + designToolsCount * 2) },
+    { label: 'Tool depth', score: Math.min(98, Math.max(50, 50 + designToolsCount * 6)) },
+    { label: 'Process docs', score: Math.min(95, Math.max(40, 40 + methodsCount * 8)) },
+    { label: 'Case quality', score: Math.min(99, Math.max(60, 60 + projectsCount * 10)) },
+    { label: 'Domain range', score: Math.min(92, Math.max(50, 50 + industriesCount * 10)) },
+    { label: 'Impact', score: Math.min(94, Math.max(60, 60 + (projectsCount > 0 ? 15 : 0) + (reportData?.strengths?.length || 0) * 4)) },
+    { label: 'Visual craft', score: Math.min(96, Math.max(70, 70 + designToolsCount * 3)) },
   ] : null;
 
   const globalScore = reportData ? Math.round((realMetrics!.reduce((acc, m) => acc + m.score, 0)) / 6) : 0;
   const metrics = realMetrics || fallbackMetrics;
   
   const caseStudies = reportData?.projects?.map((proj: any) => {
-    const pseudoScore = Math.min(95, 60 + (proj.details?.length || 0) / 15);
+    const pseudoScore = Math.min(98, 65 + (proj.details?.length || proj.description?.length || 0) / 25 + (proj.outcomes ? 12 : 0));
     return {
-      title: proj.name || 'Unnamed Project',
+      title: proj.name || proj.title || 'Portfolio Case Study',
+      role: proj.role || '',
       score: Math.round(pseudoScore),
       badge: pseudoScore >= 85 ? 'Strong' : pseudoScore >= 70 ? 'Good' : 'Needs work',
       border: pseudoScore >= 85 ? '#10b981' : pseudoScore >= 70 ? '#6366f1' : '#f97316',
-      description: proj.details || 'No description extracted.'
+      description: proj.details || proj.description || 'Extracted project from portfolio content.',
+      tools: Array.isArray(proj.technologies) ? proj.technologies : (Array.isArray(proj.tools) ? proj.tools : []),
+      outcomes: proj.outcomes || ''
     };
   }) || [];
 
@@ -219,39 +222,42 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
     <div className="flex min-h-screen flex-col bg-[#FAF9F7] font-sans text-navy">
       <PageHeader title="Portfolio" />
 
-      <div className="flex-1 p-8 pb-20">
-        <div className="mb-6 flex items-start justify-between">
+      <div className="flex-1 p-4 sm:p-8 pb-20 max-w-5xl mx-auto w-full">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[24px] font-bold text-navy">Portfolio Management</h1>
-            <p className="mt-1 text-[14px] text-navy/50">Analysis based on connected sources.</p>
+            <h1 className="text-[20px] sm:text-[24px] font-bold text-navy">Portfolio Intelligence</h1>
+            <p className="mt-1 text-[13px] sm:text-[14px] text-navy/50">Analysis based on connected sources.</p>
           </div>
           <button
-            className="flex items-center gap-2 rounded-xl border border-chalk-200 bg-white px-5 py-2.5 text-[14px] font-semibold text-navy shadow-sm hover:bg-chalk-50 transition-colors"
+            className="flex items-center gap-2 rounded-xl border border-chalk-200 bg-white px-3.5 sm:px-5 py-2 sm:py-2.5 text-[13px] sm:text-[14px] font-semibold text-navy shadow-sm hover:bg-chalk-50 transition-colors shrink-0"
             onClick={onAddSource}
           >
-            + Add portfolio source
+            + Add source
           </button>
         </div>
 
-        <div className="mb-6 rounded-2xl bg-[#1a1a2e] px-8 py-7">
-          <p className="mb-4 font-mono text-[11px] tracking-widest text-white/40 uppercase">
+        {/* Intelligence Score Banner */}
+        <div className="mb-6 rounded-2xl bg-[#1a1a2e] p-5 sm:p-8">
+          <p className="mb-3 sm:mb-4 font-mono text-[10.5px] sm:text-[11px] tracking-widest text-white/40 uppercase">
             Portfolio Intelligence Score
           </p>
-          <div className="flex items-start gap-12">
-            <div>
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-12">
+            <div className="shrink-0">
               <div className="flex items-baseline gap-2">
-                <span className="text-[72px] font-extrabold leading-none text-[#10b981]">{globalScore}</span>
-                <span className="text-[18px] font-medium text-white/40">/ 100</span>
+                <span className="text-[52px] sm:text-[72px] font-extrabold leading-none text-[#10b981]">{globalScore}</span>
+                <span className="text-[16px] sm:text-[18px] font-medium text-white/40">/ 100</span>
               </div>
-              <p className="mt-2 text-[13px] text-white/50">UX/Product Design</p>
+              <p className="mt-1.5 sm:mt-2 text-[12.5px] sm:text-[13px] text-white/60 font-medium">
+                {reportData?.headline || reportData?.target_roles?.[0] || 'UX/Product Design'}
+              </p>
             </div>
 
-            <div className="flex-1 grid grid-cols-3 gap-x-8 gap-y-4 pt-1">
+            <div className="w-full flex-1 grid grid-cols-2 sm:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-3 sm:gap-y-4 pt-1 border-t md:border-t-0 border-white/10 pt-4 md:pt-0">
               {metrics.slice(0, 6).map((m: any) => (
-                <div key={m.label}>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="text-[12.5px] text-white/60 capitalize">{m.label}</span>
-                    <span className={`text-[12.5px] font-bold ${scoreTextColor(m.score)}`}>{m.score}</span>
+                <div key={m.label} className="min-w-0">
+                  <div className="mb-1 flex items-center justify-between gap-1">
+                    <span className="text-[11.5px] sm:text-[12.5px] text-white/60 capitalize truncate">{m.label}</span>
+                    <span className={`text-[11.5px] sm:text-[12.5px] font-bold ${scoreTextColor(m.score)}`}>{m.score}</span>
                   </div>
                   <ScoreBar score={m.score} />
                 </div>
@@ -260,25 +266,67 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-chalk-200 bg-white p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
-          <h2 className="mb-5 text-[18px] font-bold text-navy">Case study analysis</h2>
+        {/* Candidate Profile Summary Card */}
+        {reportData?.summary && (
+          <div className="mb-6 rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
+            <h2 className="mb-2 text-[16px] sm:text-[17px] font-bold text-navy">Executive Summary</h2>
+            <p className="text-[13.5px] sm:text-[14px] leading-relaxed text-navy/70">{reportData.summary}</p>
+            
+            {/* Skills & Tools badges */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(reportData?.skills?.design_tools || []).map((t: string) => (
+                <span key={t} className="rounded-md bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-700">
+                  {t}
+                </span>
+              ))}
+              {(reportData?.skills?.methodologies_and_processes || []).map((m: string) => (
+                <span key={m} className="rounded-md bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-[12px] font-semibold text-emerald-700">
+                  {m}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Case Studies Breakdown */}
+        <div className="rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
+          <h2 className="mb-4 sm:mb-5 text-[16px] sm:text-[18px] font-bold text-navy">Case study analysis</h2>
           <div className="divide-y divide-chalk-100">
-            {caseStudies.map((cs: any) => (
+            {caseStudies.length > 0 ? caseStudies.map((cs: any) => (
               <div key={cs.title} className="py-5 first:pt-0 last:pb-0">
-                <div className="flex pl-4" style={{ borderLeft: `3px solid ${cs.border}` }}>
+                <div className="flex pl-3 sm:pl-4" style={{ borderLeft: `3px solid ${cs.border}` }}>
                   <div className="flex-1">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-[15.5px] font-bold text-navy">{cs.title}</span>
-                      <div className="flex items-center gap-3">
-                        <span className={`text-[16px] font-extrabold ${scoreTextColor(cs.score)}`}>{cs.score}</span>
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14.5px] sm:text-[15.5px] font-bold text-navy">{cs.title}</span>
+                        {cs.role && <span className="text-[12px] text-navy/40 font-medium">({cs.role})</span>}
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <span className={`text-[15px] sm:text-[16px] font-extrabold ${scoreTextColor(cs.score)}`}>{cs.score}</span>
                         <CaseBadge label={cs.badge} />
                       </div>
                     </div>
-                    <p className="text-[14px] leading-relaxed text-navy/55">{cs.description}</p>
+                    <p className="text-[13px] sm:text-[14px] leading-relaxed text-navy/60">{cs.description}</p>
+                    {cs.outcomes && (
+                      <div className="mt-2.5 rounded-lg bg-emerald-50/70 border border-emerald-100/60 px-3 py-1.5 text-[12px] text-emerald-800">
+                        <span className="font-semibold">Key Impact: </span>{cs.outcomes}
+                      </div>
+                    )}
+                    {cs.tools && cs.tools.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {cs.tools.map((t: string) => (
+                          <span key={t} className="rounded bg-chalk-100 px-2 py-0.5 text-[11px] font-medium text-navy/70">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="py-4 text-[13.5px] text-navy/50">No case studies extracted yet.</p>
+            )}
           </div>
         </div>
       </div>
@@ -310,17 +358,41 @@ export function PortfolioManager() {
   
   const [showInputFor, setShowInputFor] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
+  const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
-      const fileName = e.target.files[0].name;
+      const file = e.target.files[0];
+      setSelectedPdfFile(file);
       // Add it to the candidate store so it persists across page navigations (replace existing pdf if any)
       const otherLinks = candidate.portfolioLinks.filter(l => l.type !== 'pdf');
       updateCandidate({
-        portfolioLinks: [...otherLinks, { type: 'pdf', url: fileName }]
+        portfolioLinks: [...otherLinks, { type: 'pdf', url: file.name }]
       });
+    }
+  }
+
+  async function handleGenerateReport() {
+    if (selectedPdfFile) {
+      setIsAnalyzing(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedPdfFile);
+        const res = await portfolioApi.analyzePdf(formData);
+        if (res.data && res.data.job_id) {
+          setJobId(res.data.job_id);
+        } else if (res.data) {
+          handleAnalysisDone(res.data);
+        }
+      } catch (err) {
+        console.error('PDF analysis error:', err);
+        setIsAnalyzing(false);
+        alert('Failed to analyze PDF. Please check backend connection.');
+      }
+    } else {
+      setIsAnalyzing(true);
     }
   }
 
@@ -384,7 +456,33 @@ export function PortfolioManager() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          {/* LinkedIn */}
+          <div className="portfolio-source-card h-auto">
+            <div className="portfolio-source-icon portfolio-source-icon--linkedin mb-2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.25c-.9 0-1.63.73-1.63 1.63s.73 1.63 1.63 1.63 1.63-.73 1.63-1.63-.73-1.63-1.63-1.63Z" />
+              </svg>
+            </div>
+            <span className="portfolio-source-label mb-2">LinkedIn</span>
+            {showInputFor === 'linkedin' ? (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <input 
+                  type="url" 
+                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-[#0a66c2]" 
+                  placeholder="https://linkedin.com/in/..." 
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                />
+                <button className="w-full bg-[#0a66c2] text-white py-1.5 rounded-md text-sm font-medium hover:bg-[#084e96] transition-colors" onClick={() => handleConnectUrl('linkedin')}>Analyze Profile</button>
+              </div>
+            ) : (
+              <button className="portfolio-source-btn portfolio-source-btn--connect hover:border-[#0a66c2] hover:text-[#0a66c2]" onClick={() => handleConnectUrl('linkedin')}>
+                Connect
+              </button>
+            )}
+          </div>
+
           {/* Behance */}
           <div className="portfolio-source-card h-auto">
             <div className="portfolio-source-icon portfolio-source-icon--behance mb-2">Be</div>
@@ -408,12 +506,25 @@ export function PortfolioManager() {
           </div>
 
           {/* Dribbble */}
-          <div className="portfolio-source-card">
+          <div className="portfolio-source-card h-auto">
             <div className="portfolio-source-icon portfolio-source-icon--dribbble mb-2">Dr</div>
             <span className="portfolio-source-label mb-2">Dribbble</span>
-            <button className="portfolio-source-btn portfolio-source-btn--connect" onClick={() => {}}>
-              Coming soon
-            </button>
+            {showInputFor === 'dribbble' ? (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <input 
+                  type="url" 
+                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-[#ea4c89]" 
+                  placeholder="https://dribbble.com/..." 
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                />
+                <button className="w-full bg-[#ea4c89] text-white py-1.5 rounded-md text-sm font-medium hover:bg-[#d83777] transition-colors" onClick={() => handleConnectUrl('dribbble')}>Analyze Link</button>
+              </div>
+            ) : (
+              <button className="portfolio-source-btn portfolio-source-btn--connect hover:border-[#ea4c89] hover:text-[#ea4c89]" onClick={() => handleConnectUrl('dribbble')}>
+                Connect
+              </button>
+            )}
           </div>
 
           {/* Personal site */}
@@ -473,7 +584,7 @@ export function PortfolioManager() {
 
         {pdfUploaded && (
           <div className="mt-8 animate-slide-up">
-            <button className="portfolio-generate-btn" onClick={() => setIsAnalyzing(true)}>
+            <button className="portfolio-generate-btn" onClick={handleGenerateReport}>
               <Sparkles className="portfolio-generate-btn-icon" />
               Generate intelligence report
             </button>

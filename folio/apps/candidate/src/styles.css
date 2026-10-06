@@ -859,6 +859,14 @@
   letter-spacing: -0.01em;
 }
 
+.portfolio-source-icon--linkedin {
+  background: #0A66C2;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+}
+
 .portfolio-source-icon--behance {
   background: #1769FF;
   border-radius: 50%;

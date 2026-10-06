@@ -97,6 +97,8 @@ try:
     clear_sys_modules()
     scrape_dir = os.path.join(BASE_DIR, "scraper_app")
     sys.path.insert(0, scrape_dir)
+    import scraper_app
+    sys.modules["app"] = scraper_app
     from scraper_app.main import app as scrape_api
     app.mount("/api/scraper", scrape_api)
     sys.path.pop(0)

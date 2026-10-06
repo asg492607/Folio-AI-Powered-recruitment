@@ -4,8 +4,15 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   base: '/recruiter/',
-  plugins: [react()],
-  server: { port: 5174 },
+  server: { 
+    port: 5174,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -14,9 +21,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react', 'framer-motion', 'clsx', 'tailwind-merge'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor';
+            }
+            if (id.includes('lucide-react') || id.includes('framer-motion') || id.includes('clsx') || id.includes('tailwind-merge')) {
+              return 'ui';
+            }
+          }
         }
       }
     }

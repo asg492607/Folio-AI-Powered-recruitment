@@ -323,55 +323,81 @@ async def match_custom_job(job_id: str, payload: MatchRequest, db: Session = Dep
     }}
     """
 
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     groq_key = os.getenv("GROQ_API_KEY")
     groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-    if not groq_key:
-        raise HTTPException(status_code=400, detail="GROQ_API_KEY environment variable is not configured.")
+    openai_key = os.getenv("OPENAI_API_KEY")
 
-    try:
-        # Use Groq Llama API
-        client = OpenAI(
-            base_url="https://api.groq.com/openai/v1",
-            api_key=groq_key
-        )
-        response = client.chat.completions.create(
-            model=groq_model,
-            messages=[
-                {"role": "system", "content": "You are a professional recruiting assistant specialized in matching candidate portfolios to job roles."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.2
-        )
-        import re
-        clean_text = response.choices[0].message.content.strip()
-        match = re.search(r'\{[\s\S]*\}', clean_text)
-        if match:
-            clean_text = match.group(0)
-        return json.loads(clean_text)
-    except Exception as e:
-        # Programmatic fallback
-        import uuid
-        dummy_job = {
-            "job_id": str(uuid.uuid4()),
-            "job_title": "Custom Target Role",
-            "company": "Target Employer",
-            "industry": "General",
-            "location": "Remote",
-            "seniority": "mid",
-            "required_skills": ["communication", "problem solving"],
-            "tools": [],
-            "summary": payload.job_description
-        }
-        res = compute_job_match(portfolio, dummy_job)
-        return {
-            "match_score": res["score"],
-            "fit_status": res["fit_status"] + " (Fallback)",
-            "matching_skills": res["matched_skills"],
-            "missing_skills": res["missing_skills"],
-            "fit_reason": f"Analyzed via local keyword intersection heuristic engine. Error calling LLM: {str(e)}",
-            "recommendations": ["Highlight the tools and methodology matching the job description."]
-        }
+    if not gemini_key and not groq_key and not openai_key:
+        raise HTTPException(status_code=400, detail="No LLM API key configured (set GEMINI_API_KEY or GROQ_API_KEY).")
+
+    # 1. Try Gemini
+    if gemini_key:
+        try:
+            from google import genai
+            import re
+            client = genai.Client(api_key=gemini_key)
+            response = client.models.generate_content(
+                model=gemini_model,
+                contents=prompt,
+                config={"response_mime_type": "application/json", "temperature": 0.2}
+            )
+            clean_text = response.text.strip()
+            match = re.search(r'\{[\s\S]*\}', clean_text)
+            if match:
+                clean_text = match.group(0)
+            return json.loads(clean_text)
+        except Exception as e:
+            print(f"Gemini role matching error: {e}. Trying secondary provider.")
+
+    # 2. Try Groq
+    if groq_key:
+        try:
+            client = OpenAI(
+                base_url="https://api.groq.com/openai/v1",
+                api_key=groq_key
+            )
+            response = client.chat.completions.create(
+                model=groq_model,
+                messages=[
+                    {"role": "system", "content": "You are a professional recruiting assistant specialized in matching candidate portfolios to job roles."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.2
+            )
+            import re
+            clean_text = response.choices[0].message.content.strip()
+            match = re.search(r'\{[\s\S]*\}', clean_text)
+            if match:
+                clean_text = match.group(0)
+            return json.loads(clean_text)
+        except Exception as e:
+            print(f"Groq role matching error: {e}. Using heuristic fallback.")
+
+    # Programmatic heuristic fallback
+    import uuid
+    dummy_job = {
+        "job_id": str(uuid.uuid4()),
+        "job_title": "Custom Target Role",
+        "company": "Target Employer",
+        "industry": "General",
+        "location": "Remote",
+        "seniority": "mid",
+        "required_skills": ["communication", "problem solving"],
+        "tools": [],
+        "summary": payload.job_description
+    }
+    res = compute_job_match(portfolio, dummy_job)
+    return {
+        "match_score": res["score"],
+        "fit_status": res["fit_status"] + " (Fallback)",
+        "matching_skills": res["matched_skills"],
+        "missing_skills": res["missing_skills"],
+        "fit_reason": "Analyzed via local keyword intersection heuristic engine.",
+        "recommendations": ["Highlight the tools and methodology matching the job description."]
+    }
 
 @app.post("/api/v1/analyze/pdf")
 async def analyze_pdf(
@@ -457,6 +483,8 @@ async def analyze_url(
     source_label = "Website Portfolio"
     is_figma = "figma.com" in url.lower()
     is_behance = "behance.net" in url.lower()
+    is_linkedin = "linkedin.com" in url.lower()
+    is_dribbble = "dribbble.com" in url.lower()
 
     content = ""
     extracted_images = []
@@ -464,15 +492,18 @@ async def analyze_url(
 
     if is_figma:
         source_label = f"Figma Design ({url[:30]}...)"
-        # Extraction
         content = await parse_figma_content(url)
     elif is_behance:
         source_label = f"Behance Project ({url[:30]}...)"
-        # Web scraping
+        content, extracted_images, extracted_links = await scrape_url_content(url)
+    elif is_dribbble:
+        source_label = f"Dribbble Portfolio ({url[:30]}...)"
+        content, extracted_images, extracted_links = await scrape_url_content(url)
+    elif is_linkedin:
+        source_label = f"LinkedIn Profile ({url[:35]}...)"
         content, extracted_images, extracted_links = await scrape_url_content(url)
     else:
         source_label = f"Web Portfolio ({url[:30]}...)"
-        # Web scraping
         content, extracted_images, extracted_links = await scrape_url_content(url)
 
     # Queue background analysis workflow

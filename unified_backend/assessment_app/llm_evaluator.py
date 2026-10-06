@@ -19,11 +19,17 @@ if os.path.exists(".env"):
     except Exception as e:
         print(f"Error loading .env file: {e}")
 
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Determine which provider to use
-if GROQ_API_KEY:
+if GEMINI_API_KEY:
+    LLM_API_KEY = GEMINI_API_KEY
+    LLM_MODEL = GEMINI_MODEL
+    PROVIDER_NAME = "Gemini"
+elif GROQ_API_KEY:
     LLM_API_KEY = GROQ_API_KEY
     LLM_API_URL = os.getenv("LLM_API_URL", "https://api.groq.com/openai/v1/chat/completions")
     # Standard stable free model on Groq
@@ -115,6 +121,26 @@ class LLMJudge:
     def _call_llm(prompt: str, system_prompt: str) -> dict:
         if not LLM_API_KEY:
             return None # Force fallback
+
+        if PROVIDER_NAME == "Gemini":
+            try:
+                from google import genai
+                import re
+                client = genai.Client(api_key=LLM_API_KEY)
+                full_prompt = f"{system_prompt}\n\n{prompt}"
+                response = client.models.generate_content(
+                    model=LLM_MODEL,
+                    contents=full_prompt,
+                    config={"response_mime_type": "application/json", "temperature": 0.1}
+                )
+                clean_text = response.text.strip()
+                match = re.search(r'\{[\s\S]*\}', clean_text)
+                if match:
+                    clean_text = match.group(0)
+                return json.loads(clean_text)
+            except Exception as e:
+                print(f"Gemini evaluation error: {e}")
+                return None
             
         headers = {
             "Content-Type": "application/json",
@@ -156,6 +182,31 @@ class LLMJudge:
     def _call_llm_vision(prompt: str, system_prompt: str, base64_images: list) -> dict:
         if not LLM_API_KEY:
             return None
+
+        if PROVIDER_NAME == "Gemini":
+            try:
+                from google import genai
+                from google.genai import types
+                import re
+                import base64
+                client = genai.Client(api_key=LLM_API_KEY)
+                contents = [f"{system_prompt}\n\n{prompt}"]
+                for b64 in base64_images:
+                    raw_bytes = base64.b64decode(b64)
+                    contents.append(types.Part.from_bytes(data=raw_bytes, mime_type="image/jpeg"))
+                response = client.models.generate_content(
+                    model=LLM_MODEL,
+                    contents=contents,
+                    config={"response_mime_type": "application/json", "temperature": 0.1}
+                )
+                clean_text = response.text.strip()
+                match = re.search(r'\{[\s\S]*\}', clean_text)
+                if match:
+                    clean_text = match.group(0)
+                return json.loads(clean_text)
+            except Exception as e:
+                print(f"Gemini vision evaluation error: {e}")
+                return None
             
         headers = {
             "Content-Type": "application/json",
@@ -195,7 +246,7 @@ class LLMJudge:
                     content = content[3:-3]
                 return json.loads(content)
         except Exception as e:
-            print(f"Vision API Call failed ({PROVIDER_NAME}): {str(e)}.")
+            print(f"LLM Vision API Call failed ({PROVIDER_NAME}): {str(e)}.")
             return None
 
     @classmethod

@@ -41,6 +41,7 @@ export function OpportunityDiscovery() {
   
   // View mode state (grid vs list view)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [visibleCount, setVisibleCount] = useState(24);
 
   // Filtering logic
   const filtered = useMemo(() => {
@@ -438,7 +439,6 @@ export function OpportunityDiscovery() {
               </div>
             </div>
 
-            {/* Opportunities Cards Grid */}
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-chalk-200 rounded-xl bg-chalk-50/50">
                 <h3 className="text-[17px] font-bold text-navy mb-2">No matching opportunities</h3>
@@ -470,17 +470,29 @@ export function OpportunityDiscovery() {
                 </button>
               </div>
             ) : (
-              <div
-                className={`grid gap-6 ${
-                  viewMode === 'grid'
-                    ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
-                    : 'grid-cols-1'
-                }`}
-              >
-                {filtered.map((opportunity, index) => (
-                  <OpportunityCard key={opportunity.id} opportunity={opportunity} index={index} />
-                ))}
-              </div>
+              <>
+                <div
+                  className={`grid gap-6 ${
+                    viewMode === 'grid'
+                      ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
+                      : 'grid-cols-1'
+                  }`}
+                >
+                  {filtered.slice(0, visibleCount).map((opportunity, index) => (
+                    <OpportunityCard key={opportunity.id} opportunity={opportunity} index={index} />
+                  ))}
+                </div>
+                {filtered.length > visibleCount && (
+                  <div className="mt-10 flex justify-center pb-8">
+                    <button
+                      onClick={() => setVisibleCount((prev) => prev + 24)}
+                      className="rounded-xl border border-chalk-300 bg-white px-6 py-3 text-[14px] font-semibold text-navy hover:bg-chalk-50 shadow-sm transition-all"
+                    >
+                      Load More Opportunities ({filtered.length - visibleCount} remaining)
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </section>
         </div>

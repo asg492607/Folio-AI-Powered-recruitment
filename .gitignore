@@ -13,6 +13,14 @@ scraped.json
 seed_jobs.py
 seed_jobs.mjs
 seed_jobs.ps1
+*.db
+*.sqlite
+*.sqlite3
+qdrant_local_db/
+local_storage/
+uploads/
+downloaded_repo/
+*.log
 
 # ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/

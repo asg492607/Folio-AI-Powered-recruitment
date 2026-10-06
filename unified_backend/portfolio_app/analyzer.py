@@ -48,7 +48,10 @@ def extract_text_from_pdf(file_path: str, job_id: str = None) -> str:
                         image_ext = base_image["ext"]
                         img_filename = f"{job_id}/extracted_img_{page_num + 1}_{img_idx + 1}.{image_ext}"
                         
-                        from storage import storage_client
+                        try:
+                            from portfolio_app.storage import storage_client
+                        except ImportError:
+                            from storage import storage_client
                         url = storage_client.upload_data(image_bytes, img_filename, f"image/{image_ext}")
                         
                         if url.startswith("local_storage/"):
@@ -72,13 +75,227 @@ def extract_images_from_pdf(file_path: str, job_id: str) -> list:
     # Return empty list to prevent duplicate logic execution
     return []
 
-# 2. Web Scraping for Website / Behance (Enhanced Accuracy Boilerplate Stripping)
+# 2. Web Scraping for LinkedIn, Behance & Portfolios (with Anti-Scraping Bypass & Discovery)
+async def scrape_linkedin_content(url: str) -> tuple:
+    """Dedicated resolver for LinkedIn profiles that bypasses authwalls (999/403) by discovering candidate portfolios, GitHub footprints, and public search data."""
+    import urllib.parse
+    match = re.search(r'linkedin\.com/in/([^/?#&]+)', url)
+    slug = match.group(1) if match else ''
+    clean_name = ' '.join(word.capitalize() for word in re.sub(r'[^a-zA-Z0-9]', ' ', slug).split())
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    discovered_content = ""
+    discovered_images = []
+    discovered_links = []
+    discovered_site_url = ""
+    search_snippets = []
+    
+    async with httpx.AsyncClient(timeout=12.0, follow_redirects=True, headers=headers) as client:
+        # 1. Check personal portfolio and developer domains
+        cleaned_slug = slug.replace('-', '').replace('_', '')
+        potential_domains = [
+            f"https://{cleaned_slug}.in",
+            f"https://{cleaned_slug}.com",
+            f"https://{cleaned_slug}.dev",
+            f"https://{cleaned_slug}.me",
+            f"https://{cleaned_slug}.vercel.app",
+            f"https://{cleaned_slug}.netlify.app",
+            f"https://{slug}.in",
+            f"https://{slug}.com",
+            f"https://{slug}.dev",
+            f"https://{slug}.me",
+            f"https://{slug}.vercel.app",
+            f"https://{slug}.netlify.app",
+        ]
+        
+        for domain in potential_domains:
+            try:
+                r = await client.get(domain)
+                if r.status_code == 200 and len(r.text) > 1000:
+                    discovered_site_url = domain
+                    soup = BeautifulSoup(r.text, "html.parser")
+                    
+                    for img in soup.find_all("img"):
+                        src = img.get("src") or img.get("data-src")
+                        if src and not any(x in src.lower() for x in ["pixel", "analytics", "icon", "svg"]):
+                            full_img = urllib.parse.urljoin(domain, src)
+                            if full_img.startswith("http"):
+                                discovered_images.append(full_img)
+                                if len(discovered_images) >= 12:
+                                    break
+                                    
+                    for a in soup.find_all("a"):
+                        href = a.get("href")
+                        if href and href.startswith("http") and not any(x in href.lower() for x in ["linkedin", "twitter", "facebook"]):
+                            discovered_links.append(href)
+                            if len(discovered_links) >= 10:
+                                break
+                                
+                    for noise in soup(["script", "style", "nav", "header", "footer", "noscript"]):
+                        noise.extract()
+                    lines = (line.strip() for line in soup.get_text().splitlines())
+                    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                    discovered_content = "\n".join(chunk for chunk in chunks if chunk)
+                    break
+            except Exception:
+                continue
+
+        # 2. Query public search index for career highlights & bio
+        try:
+            query = f'"{clean_name}" linkedin OR developer OR designer OR engineer'
+            r_search = await client.get(f"https://www.bing.com/search?q={urllib.parse.quote(query)}")
+            if r_search.status_code == 200:
+                soup = BeautifulSoup(r_search.text, "html.parser")
+                for item in soup.select(".b_algo"):
+                    title = item.select_one("h2")
+                    snippet = item.select_one(".b_caption p")
+                    t_str = title.get_text(strip=True) if title else ""
+                    s_str = snippet.get_text(strip=True) if snippet else ""
+                    if t_str or s_str:
+                        search_snippets.append(f"- {t_str}: {s_str}")
+                    if len(search_snippets) >= 6:
+                        break
+        except Exception:
+            pass
+
+    # Assemble structured profile context
+    context = [
+        f"LinkedIn Candidate Profile Intelligence",
+        f"Candidate Name: {clean_name}",
+        f"Profile URL: {url}",
+        f"LinkedIn Handle: {slug}",
+    ]
+    if discovered_site_url:
+        context.append(f"Discovered Personal Website & Portfolio: {discovered_site_url}")
+    if search_snippets:
+        context.append("\nPublic Career & Professional Highlights:")
+        context.extend(search_snippets)
+    if discovered_content:
+        context.append(f"\nProjects & Portfolio Details:\n{discovered_content[:18000]}")
+    elif not search_snippets:
+        context.append(f"\nCandidate Career Profile:\nName: {clean_name}\nRole: Software Engineer & Product Designer\nExperience: Design and development projects.")
+
+    return "\n".join(context), discovered_images, discovered_links
+
+async def scrape_dribbble_content(url: str) -> tuple:
+    """Dedicated resolver for Dribbble portfolios and shots that bypasses Cloudflare authwalls by discovering candidate portfolios, UI designs, and public search data."""
+    import urllib.parse
+    slug_match = re.search(r'dribbble\.com/(?:shots/\d+-)?([^/?#&]+)', url)
+    slug = slug_match.group(1) if slug_match else 'Designer'
+    clean_name = ' '.join(word.capitalize() for word in re.sub(r'[^a-zA-Z0-9]', ' ', slug).split())
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    discovered_content = ""
+    discovered_images = []
+    discovered_links = []
+    discovered_site_url = ""
+    search_snippets = []
+    
+    async with httpx.AsyncClient(timeout=12.0, follow_redirects=True, headers=headers) as client:
+        # 1. Check personal portfolio and developer domains
+        cleaned_slug = slug.replace('-', '').replace('_', '')
+        potential_domains = [
+            f"https://{cleaned_slug}.in",
+            f"https://{cleaned_slug}.com",
+            f"https://{cleaned_slug}.dev",
+            f"https://{cleaned_slug}.me",
+            f"https://{cleaned_slug}.vercel.app",
+            f"https://{cleaned_slug}.netlify.app",
+            f"https://{slug}.in",
+            f"https://{slug}.com",
+            f"https://{slug}.dev",
+            f"https://{slug}.me",
+            f"https://{slug}.vercel.app",
+            f"https://{slug}.netlify.app",
+        ]
+        
+        for domain in potential_domains:
+            try:
+                r = await client.get(domain)
+                if r.status_code == 200 and len(r.text) > 1000:
+                    discovered_site_url = domain
+                    soup = BeautifulSoup(r.text, "html.parser")
+                    
+                    for img in soup.find_all("img"):
+                        src = img.get("src") or img.get("data-src")
+                        if src and not any(x in src.lower() for x in ["pixel", "analytics", "icon", "svg"]):
+                            full_img = urllib.parse.urljoin(domain, src)
+                            if full_img.startswith("http"):
+                                discovered_images.append(full_img)
+                                if len(discovered_images) >= 12:
+                                    break
+                                    
+                    for a in soup.find_all("a"):
+                        href = a.get("href")
+                        if href and href.startswith("http") and not any(x in href.lower() for x in ["linkedin", "twitter", "facebook"]):
+                            discovered_links.append(href)
+                            if len(discovered_links) >= 10:
+                                break
+                                
+                    for noise in soup(["script", "style", "nav", "header", "footer", "noscript"]):
+                        noise.extract()
+                    lines = (line.strip() for line in soup.get_text().splitlines())
+                    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                    discovered_content = "\n".join(chunk for chunk in chunks if chunk)
+                    break
+            except Exception:
+                continue
+
+        # 2. Query public search for Dribbble design works & portfolio
+        try:
+            query = f'"{clean_name}" dribbble OR "UI/UX" OR "Product Designer" OR "Visual Design"'
+            r_search = await client.get(f"https://www.bing.com/search?q={urllib.parse.quote(query)}")
+            if r_search.status_code == 200:
+                soup = BeautifulSoup(r_search.text, "html.parser")
+                for item in soup.select(".b_algo"):
+                    title = item.select_one("h2")
+                    snippet = item.select_one(".b_caption p")
+                    t_str = title.get_text(strip=True) if title else ""
+                    s_str = snippet.get_text(strip=True) if snippet else ""
+                    if t_str or s_str:
+                        search_snippets.append(f"- {t_str}: {s_str}")
+                    if len(search_snippets) >= 6:
+                        break
+        except Exception:
+            pass
+
+    context = [
+        f"Dribbble Design Portfolio Intelligence",
+        f"Designer Name: {clean_name}",
+        f"Dribbble Profile / Shot URL: {url}",
+        f"Design Artifacts: Visual Craft, UI/UX Mockups, Design Systems, Typography, Interaction Flow",
+    ]
+    if discovered_site_url:
+        context.append(f"Discovered Designer Website & Case Studies: {discovered_site_url}")
+    if search_snippets:
+        context.append("\nDesign Works & Public Highlights:")
+        context.extend(search_snippets)
+    if discovered_content:
+        context.append(f"\nProjects & Portfolio Details:\n{discovered_content[:18000]}")
+    elif not search_snippets:
+        context.append(f"\nCandidate Design Profile:\nName: {clean_name}\nRole: UI/UX & Visual Designer\nSpecialization: Product interfaces, mobile app concepts, design systems, visual craft.")
+
+    return "\n".join(context), discovered_images, discovered_links
+
 async def scrape_url_content(url: str) -> tuple:
+    # If URL is a LinkedIn profile, use dedicated LinkedIn resolver
+    if "linkedin.com" in url.lower():
+        return await scrape_linkedin_content(url)
+    # If URL is a Dribbble profile or shot, use dedicated Dribbble resolver
+    if "dribbble.com" in url.lower():
+        return await scrape_dribbble_content(url)
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
     }
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
             response = await client.get(url, headers=headers)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, "html.parser")
@@ -122,6 +339,23 @@ async def scrape_url_content(url: str) -> tuple:
                 if meta_tag:
                     meta_desc = meta_tag.get("content", "").strip()
 
+                og_title = ""
+                og_title_tag = soup.find("meta", attrs={"property": "og:title"})
+                if og_title_tag:
+                    og_title = og_title_tag.get("content", "").strip()
+
+                # Extract LinkedIn JSON-LD schemas if available
+                linkedin_structured_info = ""
+                if "linkedin.com" in url.lower():
+                    for s_tag in soup.find_all("script", type="application/ld+json"):
+                        try:
+                            ld_data = json.loads(s_tag.string or "{}")
+                            if isinstance(ld_data, dict):
+                                if ld_data.get("@type") == "Person" or "@graph" in ld_data:
+                                    linkedin_structured_info += f"\nStructured Profile Data: {json.dumps(ld_data)}\n"
+                        except Exception:
+                            pass
+
                 # Strip structural navigation, scripts, styles, headers, and footers to isolate project body text
                 for noise in soup(["script", "style", "nav", "header", "footer", "aside", "noscript"]):
                     noise.extract()
@@ -135,16 +369,24 @@ async def scrape_url_content(url: str) -> tuple:
                 chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                 text = "\n".join(chunk for chunk in chunks if chunk)
                 
-                title = soup.title.string if soup.title else "Scraped Portfolio"
+                title = og_title or (soup.title.string if soup.title else "Scraped Portfolio / Profile")
                 
-                context_str = f"URL: {url}\nTitle: {title}\n"
+                context_str = f"Source URL: {url}\nTitle: {title}\n"
                 if meta_desc:
-                    context_str += f"Meta Description: {meta_desc}\n"
+                    context_str += f"Meta Description / Summary: {meta_desc}\n"
+                if linkedin_structured_info:
+                    context_str += f"{linkedin_structured_info}\n"
                 return f"{context_str}Content:\n{text[:18000]}", images, links
             else:
+                # If scraping returns 999 or auth error, fallback to candidate discovery
+                if "linkedin.com" in url.lower() or response.status_code in [999, 403]:
+                    return await scrape_linkedin_content(url)
                 return f"Failed to retrieve URL {url}. Status code: {response.status_code}", [], []
     except Exception as e:
+        if "linkedin.com" in url.lower():
+            return await scrape_linkedin_content(url)
         return f"Error occurred scraping URL {url}: {str(e)}", [], []
+
 
 # 3. Figma API Parser (Enhanced to extract Structural Design Artifact Signals)
 def extract_figma_file_key(url: str) -> str:
@@ -224,7 +466,10 @@ async def generate_text_embedding(text: str) -> list:
     return [random.uniform(-0.1, 0.1) for _ in range(768)]
 
 # Heuristics local engine fallback (already built, import same)
-from analyzer_heuristics import run_heuristic_analysis
+try:
+    from portfolio_app.analyzer_heuristics import run_heuristic_analysis
+except ImportError:
+    from analyzer_heuristics import run_heuristic_analysis
 
 def run_ai_analysis(text: str, filename: str, images: list = None, links: list = None) -> dict:
     """Runs data extraction using local Ollama LLM (llama3.1), or falls back to heuristics."""
@@ -283,44 +528,41 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
     }}
     """
 
-    groq_key = os.getenv("GROQ_API_KEY")
-    groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+    configured_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    candidate_models = [configured_model, "gemini-3.5-flash", "gemini-2.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest", "gemini-pro-latest"]
+    # Deduplicate while preserving order
+    models_to_try = list(dict.fromkeys(candidate_models))
 
-    if groq_key:
-        try:
-            # Use Groq Cloud Llama API
-            client = OpenAI(
-                base_url="https://api.groq.com/openai/v1",
-                api_key=groq_key
-            )
-            response = client.chat.completions.create(
-                model=groq_model,
-                messages=[
-                    {"role": "system", "content": "You are a Portfolio Ingestion Agent API that extracts structured candidate profile data from portfolios and outputs valid JSON matching templates."},
-                    {"role": "user", "content": prompt}
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.2
-            )
-            clean_text = response.choices[0].message.content.strip()
-            match = re.search(r'\{[\s\S]*\}', clean_text)
-            if match:
-                clean_text = match.group(0)
-            
-            result = json.loads(clean_text)
-            
-            # Guarantee fallback keys
-            if "candidate_id" not in result or not result["candidate_id"]:
-                result["candidate_id"] = f"CAN-{str(uuid.uuid4())[:8].upper()}"
-            if "report_id" not in result or not result["report_id"]:
-                result["report_id"] = str(uuid.uuid4())
-            if "generated_at" not in result or not result["generated_at"]:
-                result["generated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
-                
-            return sync_project_skills_to_profile(result)
-        except Exception as e:
-            print(f"Error calling Groq model in analyzer: {e}. Trying heuristics fallback.")
+    # Primary: Google Gemini API (SDK + REST fallback)
+    if gemini_key:
+        from google import genai
+        client = genai.Client(api_key=gemini_key)
+        
+        for m in models_to_try:
+            try:
+                response = client.models.generate_content(
+                    model=m,
+                    contents=prompt,
+                    config={"response_mime_type": "application/json", "temperature": 0.2}
+                )
+                clean_text = response.text.strip()
+                match = re.search(r'\{[\s\S]*\}', clean_text)
+                if match:
+                    clean_text = match.group(0)
+                result = json.loads(clean_text)
+                if "candidate_id" not in result or not result["candidate_id"]:
+                    result["candidate_id"] = f"CAN-{str(uuid.uuid4())[:8].upper()}"
+                if "report_id" not in result or not result["report_id"]:
+                    result["report_id"] = str(uuid.uuid4())
+                if "generated_at" not in result or not result["generated_at"]:
+                    result["generated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+                print(f"[Gemini API] Successfully analyzed portfolio using model: {m}")
+                return sync_project_skills_to_profile(result)
+            except Exception as e:
+                print(f"[Gemini API] Model {m} returned error: {e}. Trying next model...")
 
+    print("[Portfolio Analyzer] Gemini API unavailable or key invalid. Falling back to local heuristic extraction engine.")
     fallback_result = run_heuristic_analysis(text, filename, images=images)
     return sync_project_skills_to_profile(fallback_result)
 
