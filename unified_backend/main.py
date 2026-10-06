@@ -9,6 +9,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+parent_dir = os.path.dirname(BASE_DIR)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 
 app = FastAPI(title="Unified Ecosystem API")
 
@@ -56,21 +61,12 @@ if not firebase_admin._apps:
     except Exception as e:
         print(f"Warning: Failed to initialize Firebase Admin. Make sure GOOGLE_APPLICATION_CREDENTIALS is set. {e}")
 
-# Mount Communication Pod
-def clear_sys_modules():
-    for mod in ["database", "models", "analyzer", "storage", "vector_db", "scrapers", "config", "routes", "tasks", "llm_evaluator"]:
-        if mod in sys.modules:
-            del sys.modules[mod]
-
+# Mount Pods
 mounted_modules = []
 
 try:
-    clear_sys_modules()
-    comm_dir = os.path.join(BASE_DIR, "communication_app")
-    sys.path.insert(0, comm_dir)
     from communication_app.main import app as comm_api
     app.mount("/api/communication", comm_api)
-    sys.path.pop(0)
     mounted_modules.append("communication")
     print("Mounted Communication Pod.")
 except Exception as e:
@@ -78,12 +74,8 @@ except Exception as e:
     print(f"Failed to mount Communication Pod: {e}\n{traceback.format_exc()}")
 
 try:
-    clear_sys_modules()
-    assess_dir = os.path.join(BASE_DIR, "assessment_app")
-    sys.path.insert(0, assess_dir)
     from assessment_app.main import app as assess_api
     app.mount("/api/assessment", assess_api)
-    sys.path.pop(0)
     mounted_modules.append("assessment")
     print("Mounted Assessment Pod.")
 except Exception as e:
@@ -91,12 +83,8 @@ except Exception as e:
     print(f"Failed to mount Assessment Pod: {e}\n{traceback.format_exc()}")
 
 try:
-    clear_sys_modules()
-    port_dir = os.path.join(BASE_DIR, "portfolio_app")
-    sys.path.insert(0, port_dir)
     from portfolio_app.main import app as port_api
     app.mount("/api/portfolio", port_api)
-    sys.path.pop(0)
     mounted_modules.append("portfolio")
     print("Mounted Portfolio Pod.")
 except Exception as e:
@@ -104,14 +92,10 @@ except Exception as e:
     print(f"Failed to mount Portfolio Pod: {e}\n{traceback.format_exc()}")
 
 try:
-    clear_sys_modules()
-    scrape_dir = os.path.join(BASE_DIR, "scraper_app")
-    sys.path.insert(0, scrape_dir)
     import scraper_app
     sys.modules["app"] = scraper_app
     from scraper_app.main import app as scrape_api
     app.mount("/api/scraper", scrape_api)
-    sys.path.pop(0)
     mounted_modules.append("scraper")
     print("Mounted Scraper Pod.")
 except Exception as e:

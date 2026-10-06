@@ -5,7 +5,7 @@ load_dotenv()
 import shutil
 import uuid
 import asyncio
-from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, BackgroundTasks, Header
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -402,6 +402,7 @@ async def match_custom_job(job_id: str, payload: MatchRequest, db: Session = Dep
     }
 
 @app.post("/api/v1/analyze/pdf")
+@app.post("/v1/analyze/pdf")
 async def analyze_pdf(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -460,6 +461,7 @@ async def analyze_pdf(
     return {"job_id": job_id, "status": "processing"}
 
 @app.post("/api/v1/analyze/url")
+@app.post("/v1/analyze/url")
 async def analyze_url(
     payload: UrlAnalyzeRequest,
     background_tasks: BackgroundTasks,
@@ -521,6 +523,7 @@ async def analyze_url(
     return {"job_id": job_id, "status": "processing"}
 
 @app.get("/api/v1/report/{job_id}")
+@app.get("/v1/report/{job_id}")
 async def get_report(job_id: str, db: Session = Depends(get_db)):
     """Retrieve report status and generated intelligence package."""
     db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
@@ -551,14 +554,22 @@ async def head_index():
 # ==========================================
 # Student Matchmaking Service Pod Integration
 # ==========================================
-from fastapi import Header
-from matchmaking.schemas import (
-    IngestResponse,
-    JobIngestRequest,
-    MatchRequest,
-    MatchResponse,
-    PortfolioIngestRequest,
-)
+try:
+    from portfolio_app.matchmaking.schemas import (
+        IngestResponse,
+        JobIngestRequest,
+        MatchRequest,
+        MatchResponse,
+        PortfolioIngestRequest,
+    )
+except ImportError:
+    from matchmaking.schemas import (
+        IngestResponse,
+        JobIngestRequest,
+        MatchRequest,
+        MatchResponse,
+        PortfolioIngestRequest,
+    )
 
 _matching_engine = None
 
@@ -566,10 +577,16 @@ def get_matching_engine():
     global _matching_engine
     if _matching_engine is None:
         try:
-            from matchmaking.config import load_settings
-            from matchmaking.services.store import ChromaRepository
-            from matchmaking.services.embedding import get_embedding_service
-            from matchmaking.services.hybrid_search import HybridSearchEngine
+            try:
+                from portfolio_app.matchmaking.config import load_settings
+                from portfolio_app.matchmaking.services.store import ChromaRepository
+                from portfolio_app.matchmaking.services.embedding import get_embedding_service
+                from portfolio_app.matchmaking.services.hybrid_search import HybridSearchEngine
+            except ImportError:
+                from matchmaking.config import load_settings
+                from matchmaking.services.store import ChromaRepository
+                from matchmaking.services.embedding import get_embedding_service
+                from matchmaking.services.hybrid_search import HybridSearchEngine
             
             m_settings = load_settings()
             m_repo = ChromaRepository(m_settings)
@@ -585,7 +602,10 @@ def get_matching_engine():
     return _matching_engine
 
 def require_matching_api_key(x_api_key: str = Header(default="")):
-    from matchmaking.config import load_settings
+    try:
+        from portfolio_app.matchmaking.config import load_settings
+    except ImportError:
+        from matchmaking.config import load_settings
     m_settings = load_settings()
     if m_settings.api_key and x_api_key != m_settings.api_key:
         raise HTTPException(

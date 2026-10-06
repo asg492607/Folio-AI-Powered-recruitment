@@ -2,8 +2,12 @@ import os
 import time
 from celery import Celery
 from sqlalchemy.orm import Session
-from database import SessionLocal, Candidate, IntelligenceReport, HackathonSubmission, QuizResponse, InterviewTranscript
-from vector_store import store_candidate_vector
+try:
+    from assessment_app.database import SessionLocal, Candidate, IntelligenceReport, HackathonSubmission, QuizResponse, InterviewTranscript
+    from assessment_app.vector_store import store_candidate_vector
+except ImportError:
+    from database import SessionLocal, Candidate, IntelligenceReport, HackathonSubmission, QuizResponse, InterviewTranscript
+    from vector_store import store_candidate_vector
 
 # Configure Celery
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")

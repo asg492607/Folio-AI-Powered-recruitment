@@ -8,9 +8,14 @@ import uuid
 import os
 from typing import List, Dict, Any
 
-from database import init_db, SessionLocal, Candidate, QuizResponse, HackathonSubmission, InterviewTranscript, IntelligenceReport, JobPosting
-from tasks import run_intelligence_module, compile_final_scores
-from llm_evaluator import LLMJudge, ASTAnalyzer
+try:
+    from assessment_app.database import init_db, SessionLocal, Candidate, QuizResponse, HackathonSubmission, InterviewTranscript, IntelligenceReport, JobPosting
+    from assessment_app.tasks import run_intelligence_module, compile_final_scores
+    from assessment_app.llm_evaluator import LLMJudge, ASTAnalyzer
+except ImportError:
+    from database import init_db, SessionLocal, Candidate, QuizResponse, HackathonSubmission, InterviewTranscript, IntelligenceReport, JobPosting
+    from tasks import run_intelligence_module, compile_final_scores
+    from llm_evaluator import LLMJudge, ASTAnalyzer
 
 # Init database tables
 init_db()
