@@ -25,11 +25,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,https://folio-recruitment.onrender.com").split(","),
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 app.include_router(opportunities_router, prefix="/api/v1")
 app.include_router(stats_router, prefix="/api/v1")

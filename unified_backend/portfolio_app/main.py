@@ -46,14 +46,15 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Portfolio Intelligence Agent API", version="1.0.0")
 
-# Enable CORS for development
+# Enable CORS for all environments
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,https://folio-recruitment.onrender.com").split(","),
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 os.makedirs("local_storage", exist_ok=True)
 app.mount("/local_storage", StaticFiles(directory="local_storage"), name="local_storage")

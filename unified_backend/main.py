@@ -12,20 +12,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = FastAPI(title="Unified Ecosystem API")
 
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
-if allowed_origins_env:
-    origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
-else:
-    origins = ["*"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if "*" in origins else origins,
-    allow_origin_regex=None if "*" in origins else r"https://.*\.pages\.dev|https://.*\.vercel\.app|http://localhost:.*",
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 from fastapi.responses import JSONResponse
