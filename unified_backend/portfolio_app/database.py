@@ -3,8 +3,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Render PostgreSQL URL starts with postgres://, but SQLAlchemy requires postgresql://
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./portfolio_intelligence.db")
+# On Vercel / serverless environments, default SQLite to /tmp
+default_sqlite = "/tmp/portfolio_intelligence.db" if (os.path.exists("/tmp") and os.environ.get("VERCEL")) else "./portfolio_intelligence.db"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{default_sqlite}")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 

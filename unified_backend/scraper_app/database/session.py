@@ -2,7 +2,9 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./jobscractecher.db")
+# On Vercel / serverless environments, default SQLite to /tmp
+default_sqlite = "/tmp/jobscractecher.db" if (os.path.exists("/tmp") and os.environ.get("VERCEL")) else "./jobscractecher.db"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{default_sqlite}")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 

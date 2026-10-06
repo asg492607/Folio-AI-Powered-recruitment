@@ -56,10 +56,11 @@ app.add_middleware(
 )
 
 
-os.makedirs("local_storage", exist_ok=True)
-app.mount("/local_storage", StaticFiles(directory="local_storage"), name="local_storage")
+LOCAL_STORAGE_DIR = os.path.join("/tmp", "local_storage") if (os.path.exists("/tmp") and os.environ.get("VERCEL")) else "local_storage"
+os.makedirs(LOCAL_STORAGE_DIR, exist_ok=True)
+app.mount("/local_storage", StaticFiles(directory=LOCAL_STORAGE_DIR), name="local_storage")
 
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = os.path.join("/tmp", "uploads") if (os.path.exists("/tmp") and os.environ.get("VERCEL")) else "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class UrlAnalyzeRequest(BaseModel):

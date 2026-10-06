@@ -62,6 +62,8 @@ def clear_sys_modules():
         if mod in sys.modules:
             del sys.modules[mod]
 
+mounted_modules = []
+
 try:
     clear_sys_modules()
     comm_dir = os.path.join(BASE_DIR, "communication_app")
@@ -69,9 +71,11 @@ try:
     from communication_app.main import app as comm_api
     app.mount("/api/communication", comm_api)
     sys.path.pop(0)
+    mounted_modules.append("communication")
     print("Mounted Communication Pod.")
 except Exception as e:
-    print(f"Failed to mount Communication Pod: {e}")
+    import traceback
+    print(f"Failed to mount Communication Pod: {e}\n{traceback.format_exc()}")
 
 try:
     clear_sys_modules()
@@ -80,9 +84,11 @@ try:
     from assessment_app.main import app as assess_api
     app.mount("/api/assessment", assess_api)
     sys.path.pop(0)
+    mounted_modules.append("assessment")
     print("Mounted Assessment Pod.")
 except Exception as e:
-    print(f"Failed to mount Assessment Pod: {e}")
+    import traceback
+    print(f"Failed to mount Assessment Pod: {e}\n{traceback.format_exc()}")
 
 try:
     clear_sys_modules()
@@ -91,9 +97,11 @@ try:
     from portfolio_app.main import app as port_api
     app.mount("/api/portfolio", port_api)
     sys.path.pop(0)
+    mounted_modules.append("portfolio")
     print("Mounted Portfolio Pod.")
 except Exception as e:
-    print(f"Failed to mount Portfolio Pod: {e}")
+    import traceback
+    print(f"Failed to mount Portfolio Pod: {e}\n{traceback.format_exc()}")
 
 try:
     clear_sys_modules()
@@ -104,20 +112,24 @@ try:
     from scraper_app.main import app as scrape_api
     app.mount("/api/scraper", scrape_api)
     sys.path.pop(0)
+    mounted_modules.append("scraper")
     print("Mounted Scraper Pod.")
 except Exception as e:
-    print(f"Failed to mount Scraper Pod: {e}")
+    import traceback
+    print(f"Failed to mount Scraper Pod: {e}\n{traceback.format_exc()}")
 
 try:
     from collections_router import router as collections_router
     app.include_router(collections_router, prefix="/api/collections", tags=["Collections"])
+    mounted_modules.append("collections")
     print("Mounted Collections Router.")
 except Exception as e:
-    print(f"Failed to mount Collections Router: {e}")
+    import traceback
+    print(f"Failed to mount Collections Router: {e}\n{traceback.format_exc()}")
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "modules": ["communication", "assessment", "portfolio", "scraper"]}
+    return {"status": "healthy", "modules": mounted_modules}
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -159,7 +171,20 @@ async def serve_candidate_spa(full_path: str = ""):
     index_path = candidate_dist / "index.html"
     if index_path.is_file():
         return FileResponse(str(index_path))
-    return JSONResponse(status_code=404, content={"detail": "Candidate frontend not built."})
+    
+    # When backend is deployed standalone on Vercel
+    if not full_path:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "online",
+                "service": "Folio Unified AI Recruitment Engine",
+                "docs": "/docs",
+                "health": "/health",
+                "frontend": "https://folio.bariyarvaibhav.workers.dev"
+            }
+        )
+    return JSONResponse(status_code=404, content={"detail": f"Route /{full_path} not found."})
 
 if __name__ == "__main__":
     import uvicorn

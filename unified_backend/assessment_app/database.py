@@ -5,7 +5,8 @@ from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 
 # Fallback to local sqlite for easy local development, or use PostgreSQL if specified in ENV
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./assessment_pod.db")
+default_sqlite = "/tmp/assessment_pod.db" if (os.path.exists("/tmp") and os.environ.get("VERCEL")) else "./assessment_pod.db"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{default_sqlite}")
 
 engine = create_engine(
     DATABASE_URL, 

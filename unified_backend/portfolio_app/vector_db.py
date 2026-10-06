@@ -1,6 +1,13 @@
 import os
-from qdrant_client import QdrantClient
-from qdrant_client.http import models as qdrant_models
+
+try:
+    from qdrant_client import QdrantClient
+    from qdrant_client.http import models as qdrant_models
+    HAS_QDRANT = True
+except ImportError:
+    HAS_QDRANT = False
+    QdrantClient = None
+    qdrant_models = None
 
 QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
@@ -10,6 +17,11 @@ VECTOR_SIZE = 768  # Matches google-generativeai models/text-embedding-004 or em
 
 class VectorDBClient:
     def __init__(self):
+        if not HAS_QDRANT:
+            print("qdrant-client not installed. Vector search will be mocked.")
+            self.client = None
+            return
+
         try:
             if QDRANT_URL:
                 # Cloud/Remote mode
@@ -19,9 +31,10 @@ class VectorDBClient:
                 )
                 print(f"Connected to Qdrant remote instance at {QDRANT_URL}")
             else:
-                # Local disk storage mode (SQLite-equivalent for Qdrant)
-                self.client = QdrantClient(path="./qdrant_local_db")
-                print("Initialized local disk-backed Qdrant database")
+                # Local disk storage mode (use /tmp on serverless environments like Vercel)
+                db_path = os.path.join("/tmp", "qdrant_local_db") if os.path.exists("/tmp") else "./qdrant_local_db"
+                self.client = QdrantClient(path=db_path)
+                print(f"Initialized local disk-backed Qdrant database at {db_path}")
             
             # Ensure collection exists
             self._ensure_collection()
