@@ -11,7 +11,8 @@ import {
   limit,
 } from 'firebase/firestore';
 
-const JOB_SCRATCHER_URL = import.meta.env.VITE_SCRAPER_URL || '/api/scraper';
+const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '';
+const JOB_SCRATCHER_URL = import.meta.env.VITE_SCRAPER_URL || (API_BASE ? `${API_BASE}/api/scraper` : '/api/scraper');
 const FIRESTORE_COLLECTION = 'opportunities';
 
 // ─── Firestore helpers ───────────────────────────────────────────────────────

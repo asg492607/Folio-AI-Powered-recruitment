@@ -3,10 +3,10 @@ import axios from 'axios';
 // Unified Backend API Base URL
 // For local development, it assumes the unified backend is running on port 8000.
 // In production, this should be replaced with the Render deployment URL via env vars.
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : '';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -14,11 +14,12 @@ const api = axios.create({
 
 // Portfolio System API (Routed to unified backend portfolio pod)
 const portfolioAxios = axios.create({
-  baseURL: import.meta.env.VITE_PORTFOLIO_API_URL || `${API_BASE_URL}/api/portfolio`,
+  baseURL: import.meta.env.VITE_PORTFOLIO_API_URL || (API_BASE_URL ? `${API_BASE_URL}/api/portfolio` : '/api/portfolio'),
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
 
 // Matchmaking & Portfolio endpoints
 export const portfolioApi = {
