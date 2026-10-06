@@ -39,7 +39,8 @@ def extract_text_from_pdf(file_path: str, job_id: str = None) -> str:
                 # If job_id is provided, extract images on the fly and embed placeholders
                 page_images_placeholders = ""
                 if job_id:
-                    os.makedirs(f"local_storage/{job_id}", exist_ok=True)
+                    storage_target = os.path.join("/tmp", "local_storage", job_id) if (os.path.exists("/tmp") and os.environ.get("VERCEL")) else f"local_storage/{job_id}"
+                    os.makedirs(storage_target, exist_ok=True)
                     image_list = page.get_images(full=True)
                     for img_idx, img in enumerate(image_list):
                         xref = img[0]

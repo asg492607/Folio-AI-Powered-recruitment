@@ -9,7 +9,7 @@ S3_SECRET_KEY = os.getenv("S3_SECRET_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY")
 S3_BUCKET = os.getenv("S3_BUCKET_NAME", "portfolio-intelligence")
 S3_REGION = os.getenv("S3_REGION", "us-east-1")
 
-LOCAL_STORAGE_DIR = "local_storage"
+LOCAL_STORAGE_DIR = os.path.join("/tmp", "local_storage") if (os.path.exists("/tmp") and os.environ.get("VERCEL")) else "local_storage"
 os.makedirs(LOCAL_STORAGE_DIR, exist_ok=True)
 
 class StorageClient:
