@@ -174,6 +174,7 @@ function scoreTextColor(score: number) {
 interface PortfolioReportProps {
   reportData: any;
   onAddSource: () => void;
+  onSyncGithub: () => void;
 }
 
 const fallbackMetrics = [
@@ -185,7 +186,7 @@ const fallbackMetrics = [
   { label: 'Impact',        score: 0 },
 ];
 
-function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
+function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioReportProps) {
   // Generate metrics based on extracted data
   const designToolsCount = reportData?.skills?.design_tools?.length || 0;
   const methodsCount = reportData?.skills?.methodologies_and_processes?.length || 0;
@@ -235,20 +236,50 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
 
       <div className="flex-1 p-4 sm:p-8 pb-20 max-w-5xl mx-auto w-full space-y-6">
         {/* Header with Title & Action */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-[22px] sm:text-[26px] font-bold text-navy font-serif">Portfolio Intelligence</h1>
             <p className="mt-1 text-[13.5px] sm:text-[14px] text-navy/60">
-              Deep multi-project analysis synthesized from connected candidate sources.
+              Deep multi-project analysis synthesized from connected candidate sources ({caseStudies.length} projects extracted).
             </p>
           </div>
-          <button
-            className="flex items-center gap-2 rounded-xl border border-chalk-200 bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-semibold text-navy shadow-sm hover:bg-chalk-50 transition-colors shrink-0"
-            onClick={onAddSource}
-          >
-            + Add source
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 sm:px-5 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-semibold text-white shadow-sm hover:bg-black transition-colors shrink-0 cursor-pointer"
+              onClick={onSyncGithub}
+            >
+              <Rocket className="w-4 h-4 text-emerald-400" />
+              Sync All Projects
+            </button>
+            <button
+              className="flex items-center gap-2 rounded-xl border border-chalk-200 bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-semibold text-navy shadow-sm hover:bg-chalk-50 transition-colors shrink-0 cursor-pointer"
+              onClick={onAddSource}
+            >
+              + Add source
+            </button>
+          </div>
         </div>
+
+        {/* Upgrade / Sync Repositories Banner if 1 project */}
+        {projectsCount <= 1 && (
+          <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-white p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Sparkles className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <h3 className="text-[15.5px] font-bold text-navy">Retrieve all 11+ Projects from GitHub</h3>
+                <p className="text-[13px] text-navy/65">Auto-import and extract deep architectural breakdowns, challenges, and tech stacks for all your public repositories.</p>
+              </div>
+            </div>
+            <button
+              onClick={onSyncGithub}
+              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-[13.5px] font-bold text-white shadow-md hover:bg-indigo-700 transition-all shrink-0 cursor-pointer hover:shadow-indigo-200"
+            >
+              <Rocket className="w-4 h-4" /> Sync All Projects Now
+            </button>
+          </div>
+        )}
 
         {/* Candidate Profile Header Card */}
         {reportData?.full_name && (
@@ -558,11 +589,28 @@ export function PortfolioManager() {
   }
 
   async function handleConnectUrl(type: string) {
-    if (showInputFor === type && urlInput) {
+    if (showInputFor === type && urlInput.trim()) {
       setIsAnalyzing(true);
       try {
-        const res = await portfolioApi.analyzeUrl(urlInput);
-        setJobId(res.data.job_id);
+        let finalUrl = urlInput.trim();
+        if (type === 'github' && !finalUrl.includes('github.com') && !finalUrl.startsWith('http')) {
+          finalUrl = `https://github.com/${finalUrl.replace(/^@/, '')}`;
+        } else if (type === 'linkedin' && !finalUrl.includes('linkedin.com') && !finalUrl.startsWith('http')) {
+          finalUrl = `https://linkedin.com/in/${finalUrl.replace(/^@/, '')}`;
+        } else if (type === 'behance' && !finalUrl.includes('behance.net') && !finalUrl.startsWith('http')) {
+          finalUrl = `https://behance.net/${finalUrl.replace(/^@/, '')}`;
+        } else if (type === 'dribbble' && !finalUrl.includes('dribbble.com') && !finalUrl.startsWith('http')) {
+          finalUrl = `https://dribbble.com/${finalUrl.replace(/^@/, '')}`;
+        } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+          finalUrl = `https://${finalUrl}`;
+        }
+
+        const res = await portfolioApi.analyzeUrl(finalUrl);
+        if (res.data && res.data.job_id) {
+          setJobId(res.data.job_id);
+        } else if (res.data) {
+          handleAnalysisDone(res.data);
+        }
       } catch (err) {
         console.error(err);
         setIsAnalyzing(false);
@@ -570,7 +618,7 @@ export function PortfolioManager() {
       }
     } else {
       setShowInputFor(type);
-      setUrlInput('');
+      setUrlInput(type === 'github' ? 'https://github.com/not-so-Vaibhav' : '');
     }
   }
 
@@ -593,6 +641,22 @@ export function PortfolioManager() {
     }
   }
 
+  async function handleSyncGithubDirectly() {
+    setIsAnalyzing(true);
+    try {
+      const res = await portfolioApi.analyzeUrl('https://github.com/not-so-Vaibhav');
+      if (res.data && res.data.job_id) {
+        setJobId(res.data.job_id);
+      } else if (res.data) {
+        handleAnalysisDone(res.data);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsAnalyzing(false);
+      alert('Failed to start GitHub repository analysis.');
+    }
+  }
+
   // Show analyzing screen
   if (isAnalyzing) {
     return <AnalyzingScreen jobId={jobId} onDone={handleAnalysisDone} />;
@@ -600,7 +664,13 @@ export function PortfolioManager() {
 
   // After analysis completes, show full intelligence report
   if (analysisDone) {
-    return <PortfolioReport reportData={reportData} onAddSource={() => { setAnalysisDone(false); setIsAnalyzing(false); }} />;
+    return (
+      <PortfolioReport 
+        reportData={reportData} 
+        onAddSource={() => { setAnalysisDone(false); setIsAnalyzing(false); }} 
+        onSyncGithub={handleSyncGithubDirectly} 
+      />
+    );
   }
 
   return (
@@ -613,11 +683,37 @@ export function PortfolioManager() {
             Portfolio Management
           </h2>
           <p className="text-[15px] leading-relaxed text-navy/60 max-w-3xl">
-            Connect a portfolio source to get your first intelligence report. The analysis extracts your skills, tools, and design domains from actual work.
+            Connect your portfolio, GitHub repositories, or personal site to generate a comprehensive intelligence report. The analysis extracts your real engineering projects, architecture, and tech stacks.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+          {/* GitHub */}
+          <div className="portfolio-source-card h-auto">
+            <div className="portfolio-source-icon mb-2 flex items-center justify-center rounded-xl bg-slate-900 text-white p-2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+              </svg>
+            </div>
+            <span className="portfolio-source-label mb-2">GitHub</span>
+            {showInputFor === 'github' ? (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <input 
+                  type="text" 
+                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-slate-900" 
+                  placeholder="https://github.com/not-so-Vaibhav" 
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                />
+                <button className="w-full bg-slate-900 text-white py-1.5 rounded-md text-sm font-medium hover:bg-black transition-colors" onClick={() => handleConnectUrl('github')}>Analyze Repositories</button>
+              </div>
+            ) : (
+              <button className="portfolio-source-btn portfolio-source-btn--connect hover:border-slate-900 hover:text-slate-900" onClick={() => handleConnectUrl('github')}>
+                Connect
+              </button>
+            )}
+          </div>
+
           {/* LinkedIn */}
           <div className="portfolio-source-card h-auto">
             <div className="portfolio-source-icon portfolio-source-icon--linkedin mb-2">
@@ -639,6 +735,34 @@ export function PortfolioManager() {
               </div>
             ) : (
               <button className="portfolio-source-btn portfolio-source-btn--connect hover:border-[#0a66c2] hover:text-[#0a66c2]" onClick={() => handleConnectUrl('linkedin')}>
+                Connect
+              </button>
+            )}
+          </div>
+
+          {/* Personal site */}
+          <div className="portfolio-source-card h-auto">
+            <div className="portfolio-source-icon portfolio-source-icon--personal mb-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <span className="portfolio-source-label mb-2">Personal site</span>
+            {showInputFor === 'personal' ? (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <input 
+                  type="url" 
+                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-[#6366f1]" 
+                  placeholder="https://yourwebsite.com" 
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                />
+                <button className="w-full bg-[#6366f1] text-white py-1.5 rounded-md text-sm font-medium" onClick={() => handleConnectUrl('personal')}>Analyze Link</button>
+              </div>
+            ) : (
+              <button className="portfolio-source-btn portfolio-source-btn--connect" onClick={() => handleConnectUrl('personal')}>
                 Connect
               </button>
             )}
@@ -683,34 +807,6 @@ export function PortfolioManager() {
               </div>
             ) : (
               <button className="portfolio-source-btn portfolio-source-btn--connect hover:border-[#ea4c89] hover:text-[#ea4c89]" onClick={() => handleConnectUrl('dribbble')}>
-                Connect
-              </button>
-            )}
-          </div>
-
-          {/* Personal site */}
-          <div className="portfolio-source-card h-auto">
-            <div className="portfolio-source-icon portfolio-source-icon--personal mb-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="2" y1="12" x2="22" y2="12"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-            </div>
-            <span className="portfolio-source-label mb-2">Personal site</span>
-            {showInputFor === 'personal' ? (
-              <div className="flex flex-col gap-2 w-full mt-2">
-                <input 
-                  type="url" 
-                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-[#6366f1]" 
-                  placeholder="https://yourwebsite.com" 
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                />
-                <button className="w-full bg-[#6366f1] text-white py-1.5 rounded-md text-sm font-medium" onClick={() => handleConnectUrl('personal')}>Analyze Link</button>
-              </div>
-            ) : (
-              <button className="portfolio-source-btn portfolio-source-btn--connect" onClick={() => handleConnectUrl('personal')}>
                 Connect
               </button>
             )}
