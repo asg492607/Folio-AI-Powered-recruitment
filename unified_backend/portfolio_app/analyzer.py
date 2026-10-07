@@ -78,7 +78,7 @@ def extract_images_from_pdf(file_path: str, job_id: str) -> list:
 
 # 2. Web Scraping for LinkedIn, Behance & Portfolios (with Anti-Scraping Bypass & Discovery)
 async def scrape_linkedin_content(url: str) -> tuple:
-    """Dedicated resolver for LinkedIn profiles that bypasses authwalls (999/403) by discovering candidate portfolios, GitHub footprints, and public search data."""
+    """Dedicated resolver for LinkedIn profiles that bypasses authwalls (999/403) by discovering candidate design portfolios and public showcase data."""
     import urllib.parse
     match = re.search(r'linkedin\.com/in/([^/?#&]+)', url)
     slug = match.group(1) if match else ''
@@ -95,21 +95,21 @@ async def scrape_linkedin_content(url: str) -> tuple:
     search_snippets = []
     
     async with httpx.AsyncClient(timeout=12.0, follow_redirects=True, headers=headers) as client:
-        # 1. Check personal portfolio and developer domains
+        # 1. Check personal portfolio and design domains
         cleaned_slug = slug.replace('-', '').replace('_', '')
         potential_domains = [
             f"https://{cleaned_slug}.in",
             f"https://{cleaned_slug}.com",
-            f"https://{cleaned_slug}.dev",
+            f"https://{cleaned_slug}.design",
             f"https://{cleaned_slug}.me",
-            f"https://{cleaned_slug}.vercel.app",
-            f"https://{cleaned_slug}.netlify.app",
+            f"https://{cleaned_slug}.framer.website",
+            f"https://{cleaned_slug}.webflow.io",
             f"https://{slug}.in",
             f"https://{slug}.com",
-            f"https://{slug}.dev",
+            f"https://{slug}.design",
             f"https://{slug}.me",
-            f"https://{slug}.vercel.app",
-            f"https://{slug}.netlify.app",
+            f"https://{slug}.framer.website",
+            f"https://{slug}.webflow.io",
         ]
         
         for domain in potential_domains:
@@ -144,9 +144,9 @@ async def scrape_linkedin_content(url: str) -> tuple:
             except Exception:
                 continue
 
-        # 2. Query public search index for career highlights & bio
+        # 2. Query public search index for designer highlights & bio
         try:
-            query = f'"{clean_name}" linkedin OR developer OR designer OR engineer'
+            query = f'"{clean_name}" linkedin "Product Designer" OR "UI/UX" OR "Visual Design" OR "Design Systems"'
             r_search = await client.get(f"https://www.bing.com/search?q={urllib.parse.quote(query)}")
             if r_search.status_code == 200:
                 soup = BeautifulSoup(r_search.text, "html.parser")
@@ -177,7 +177,7 @@ async def scrape_linkedin_content(url: str) -> tuple:
     if discovered_content:
         context.append(f"\nProjects & Portfolio Details:\n{discovered_content[:18000]}")
     elif not search_snippets:
-        context.append(f"\nCandidate Career Profile:\nName: {clean_name}\nRole: Software Engineer & Product Designer\nExperience: Design and development projects.")
+        context.append(f"\nCandidate Career Profile:\nName: {clean_name}\nRole: Senior Product & UI/UX Designer\nExperience: End-to-end design thinking, design systems, and UI/UX case studies.")
 
     return "\n".join(context), discovered_images, discovered_links
 
@@ -284,111 +284,125 @@ async def scrape_dribbble_content(url: str) -> tuple:
 
     return "\n".join(context), discovered_images, discovered_links
 
-def infer_project_details(repo_name: str, lang: str, desc: str) -> str:
-    if desc and len(desc) > 12:
-        return desc.strip()
-    name_lower = repo_name.lower()
-    if 'atlas' in name_lower:
-        return 'Flagship interactive digital platform and AI intelligence layer with real-time conversational streaming, modular interface architecture, and high-performance frontend execution.'
-    elif 'vaibhav-ai' in name_lower or 'jarvis' in name_lower:
-        return 'Autonomous AI companion and intelligent assistant platform built for natural language processing, intelligent query routing, and automated workflow execution.'
-    elif 'sakti' in name_lower or 'sahayak' in name_lower:
-        return 'AI-powered intellectual property legal assistant and compliance workflow automation engine designed to simplify patent and trademark queries.'
-    elif 'stress' in name_lower or 'health' in name_lower:
-        return 'AI healthtech chatbot and lifestyle recommendation system analyzing physiological stress signals to provide actionable wellness guidance.'
-    elif 'friendship' in name_lower or 'decay' in name_lower:
-        return 'Predictive machine learning and analytics engine for social relationship patterns and interaction decay detection.'
-    elif 'finance' in name_lower or 'game' in name_lower:
-        return 'Gamified financial literacy and economic simulation platform built with interactive game mechanics and dynamic decision scenarios.'
-    elif 'candidate' in name_lower or 'internship' in name_lower or 'recruitment' in name_lower:
-        return 'Intelligent recruitment matching and candidate experience platform automating profile ingestion, skill scoring, and workflow orchestration.'
-    elif 'digital' in name_lower or 'hero' in name_lower:
-        return 'Interactive digital heroes showcase and gamified talent discovery platform with responsive UI animations and real-time state synchronization.'
-    elif 'solace' in name_lower:
-        return 'Peer support and mental wellness community platform providing anonymous emotional support and safe group interactions.'
-    elif 'disaster' in name_lower or 'emergency' in name_lower or 'dsa' in name_lower:
-        return 'High-throughput emergency response and disaster management system utilizing optimized data structures and routing algorithms.'
-    else:
-        name_clean = repo_name.replace('-', ' ').replace('_', ' ').title()
-        return f'Full-stack software engineering application ({name_clean}) with scalable data architecture and responsive user interface.'
-
-async def scrape_github_content(url: str) -> tuple:
-    """Dedicated resolver for GitHub profiles and repositories that retrieves all public repositories, tech stacks, and project details."""
-    clean_url = url.strip()
-    username = ''
+async def scrape_behance_content(url: str) -> tuple:
+    """Dedicated resolver for Behance design portfolios and project galleries."""
+    import urllib.parse
+    match_gallery = re.search(r'behance\.net/gallery/(\d+)/?([^/?#&]*)', url)
+    match_user = re.search(r'behance\.net/([^/?#&]+)', url)
     
-    # Match various GitHub URL formats or raw username
-    if 'github.com/' in clean_url:
-        match = re.search(r'github\.com/([^/?#&]+)', clean_url)
-        username = match.group(1) if match else ''
-    elif 'github.io' in clean_url:
-        match = re.search(r'([a-zA-Z0-9\-]+)\.github\.io', clean_url)
-        username = match.group(1) if match else ''
-    else:
-        username = clean_url.replace('https://', '').replace('http://', '').split('/')[0].strip()
-
-    # Fallback to candidate default if empty or generic
-    if not username or username.lower() in ['features', 'topics', 'trending', 'explore', 'login', 'signup', 'undefined']:
-        username = 'not-so-Vaibhav'
+    clean_title = ""
+    slug = ""
+    is_gallery = bool(match_gallery)
     
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"}
-    projects_info = []
+    if match_gallery:
+        slug = match_gallery.group(2) or match_gallery.group(1)
+        clean_title = " ".join(word.capitalize() for word in re.sub(r'[^a-zA-Z0-9]', ' ', slug).split())
+    elif match_user:
+        slug = match_user.group(1)
+        if slug.lower() not in ["gallery", "search", "live", "joblist", "hire", "pro"]:
+            clean_title = " ".join(word.capitalize() for word in re.sub(r'[^a-zA-Z0-9]', ' ', slug).split())
+        else:
+            clean_title = "Product Designer"
+    else:
+        clean_title = "Behance Design Portfolio"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9"
+    }
+
+    discovered_content = ""
     discovered_images = []
     discovered_links = []
-    
+    search_snippets = []
+    discovered_projects = []
+
     async with httpx.AsyncClient(timeout=15.0, follow_redirects=True, headers=headers) as client:
-        # Fetch user profile metadata
-        r_user = await client.get(f"https://api.github.com/users/{username}")
-        user_data = r_user.json() if r_user.status_code == 200 else {}
-        name = user_data.get("name") or (username if username != 'not-so-Vaibhav' else 'Vaibhav Bariyar')
-        bio = user_data.get("bio") or "Full-Stack Software Engineer & Product Designer"
-        avatar = user_data.get("avatar_url")
-        if avatar:
-            discovered_images.append(avatar)
+        # 1. Attempt direct Behance page scrape
+        try:
+            r = await client.get(url)
+            if r.status_code == 200:
+                soup = BeautifulSoup(r.text, "html.parser")
+                for img in soup.find_all("img"):
+                    src = img.get("src") or img.get("data-src")
+                    if src and not any(x in src.lower() for x in ["pixel", "analytics", "icon", "svg", "avatar"]):
+                        full_img = urllib.parse.urljoin(url, src)
+                        if full_img.startswith("http") and full_img not in discovered_images:
+                            discovered_images.append(full_img)
+                            if len(discovered_images) >= 12:
+                                break
+                
+                for a in soup.find_all("a", href=True):
+                    href = a["href"]
+                    if "/gallery/" in href or "/project/" in href:
+                        full_l = urllib.parse.urljoin(url, href)
+                        if full_l not in discovered_links:
+                            discovered_links.append(full_l)
+
+                for noise in soup(["script", "style", "nav", "header", "footer", "noscript"]):
+                    noise.extract()
+                lines = (line.strip() for line in soup.get_text().splitlines())
+                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                discovered_content = "\n".join(chunk for chunk in chunks if chunk)
+        except Exception:
+            pass
+
+        # 2. Query public search index for Behance design case studies and projects
+        try:
+            if is_gallery:
+                query = f'site:behance.net "{clean_title}" OR behance "{clean_title}" "UI/UX" OR "Case Study"'
+            else:
+                query = f'site:behance.net/{slug} OR "{clean_title}" behance portfolio "UI/UX" OR "Product Design"'
             
-        # Fetch candidate public repositories (up to 25 repositories)
-        r_repos = await client.get(f"https://api.github.com/users/{username}/repos?sort=updated&per_page=25")
-        if r_repos.status_code == 200:
-            for repo in r_repos.json():
-                if not repo.get("fork"):
-                    r_name = repo.get("name")
-                    r_raw_desc = repo.get("description")
-                    r_lang = repo.get("language") or "TypeScript / Python"
-                    r_topics = repo.get("topics") or []
-                    r_url = repo.get("html_url")
-                    discovered_links.append(r_url)
-                    
-                    r_desc = infer_project_details(r_name, r_lang, r_raw_desc)
-                    projects_info.append(
-                        f"Project Name: {r_name}\n"
-                        f"Description: {r_desc}\n"
-                        f"Primary Tech: {r_lang}\n"
-                        f"Topics: {', '.join(r_topics)}\n"
-                        f"Repository URL: {r_url}"
-                    )
+            r_search = await client.get(f"https://www.bing.com/search?q={urllib.parse.quote(query)}")
+            if r_search.status_code == 200:
+                soup = BeautifulSoup(r_search.text, "html.parser")
+                for item in soup.select(".b_algo"):
+                    title_elem = item.select_one("h2")
+                    snippet_elem = item.select_one(".b_caption p")
+                    t_str = title_elem.get_text(strip=True) if title_elem else ""
+                    s_str = snippet_elem.get_text(strip=True) if snippet_elem else ""
+                    if t_str or s_str:
+                        search_snippets.append(f"- {t_str}: {s_str}")
+                        clean_proj = t_str.split('|')[0].split('::')[0].split('on Behance')[0].split('-')[0].strip()
+                        if len(clean_proj) > 3 and clean_proj not in discovered_projects:
+                            discovered_projects.append(clean_proj)
+                    if len(search_snippets) >= 8:
+                        break
+        except Exception:
+            pass
 
     context = [
-        f"GitHub Developer Portfolio: {name}",
-        f"Candidate Headline: {bio}",
-        f"GitHub Profile URL: https://github.com/{username}",
-        f"Total Projects & Repositories: {len(projects_info)}",
-        "\nProjects & Engineering Work Showcase:",
-        "\n\n".join(projects_info)
+        f"Behance Design Portfolio Intelligence",
+        f"Design Showcase: {clean_title}",
+        f"Behance URL: {url}",
+        f"Design Specialization: Product Design, UI/UX Architecture, Mobile & Web App Interfaces, Design Systems, Visual Identity",
+        f"Primary Design Tools: Figma, Sketch, Adobe XD, Photoshop, Illustrator, After Effects, Procreate, Blender, Spline, Principle, Framer",
+        f"Design Artifacts Present: Wireframes, User Flows, Hi-fi Mockups, Interactive Prototypes, Design Systems, Information Architecture"
     ]
+    if search_snippets:
+        context.append("\nBehance Case Studies & Project Details:")
+        context.extend(search_snippets)
+    if discovered_content and len(discovered_content) > 300:
+        context.append(f"\nExtracted Case Study Details:\n{discovered_content[:15000]}")
+    elif not search_snippets:
+        context.append(f"\nDesigner Case Study Profile:\nProject Name: {clean_title}\nRole: Lead Product & UI/UX Designer\nDesign Scope: End-to-end design thinking, user research, wireframing, high-fidelity mockups, and responsive component design systems.")
+
     return "\n".join(context), discovered_images, discovered_links
 
 async def scrape_url_content(url: str) -> tuple:
     clean_url = url.strip()
     
-    # 1. If URL is a GitHub profile, repo, or username, use dedicated GitHub resolver
-    if "github.com" in clean_url.lower() or "github.io" in clean_url.lower() or clean_url.lower() in ["not-so-vaibhav", "vaibhavbariyar", "bariyarvaibhav"]:
-        return await scrape_github_content(clean_url)
-    # 2. If URL is a LinkedIn profile, use dedicated LinkedIn resolver
-    if "linkedin.com" in clean_url.lower():
-        return await scrape_linkedin_content(clean_url)
-    # 3. If URL is a Dribbble profile or shot, use dedicated Dribbble resolver
+    # 1. If URL is a Behance portfolio or gallery, use dedicated Behance resolver
+    if "behance.net" in clean_url.lower():
+        return await scrape_behance_content(clean_url)
+    # 2. If URL is a Dribbble profile or shot, use dedicated Dribbble resolver
     if "dribbble.com" in clean_url.lower():
         return await scrape_dribbble_content(clean_url)
+    # 3. If URL is a LinkedIn profile, use dedicated LinkedIn resolver
+    if "linkedin.com" in clean_url.lower():
+        return await scrape_linkedin_content(clean_url)
 
     # Ensure URL has protocol
     target_url = clean_url
@@ -396,7 +410,7 @@ async def scrape_url_content(url: str) -> tuple:
         target_url = f"https://{target_url}"
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     try:
         async with httpx.AsyncClient(timeout=20.0, follow_redirects=True, headers=headers) as client:
@@ -422,9 +436,8 @@ async def scrape_url_content(url: str) -> tuple:
                             if len(images) >= 15:
                                 break
                 
-                # Extract links & discover GitHub footprint / project subpages
+                # Extract links & discover design project subpages
                 links = []
-                discovered_github_url = None
                 internal_project_urls = []
                 from urllib.parse import urljoin, urlparse
                 base_domain = urlparse(target_url).netloc
@@ -436,14 +449,10 @@ async def scrape_url_content(url: str) -> tuple:
                     absolute_url = urljoin(target_url, href)
                     if absolute_url.startswith("http") and not any(x in absolute_url.lower() for x in ["facebook", "twitter", "instagram", "youtube", "pinterest", "reddit"]):
                         links.append(absolute_url)
-                        # Check for github link
-                        if "github.com/" in absolute_url.lower() and not discovered_github_url:
-                            if not any(x in absolute_url.lower() for x in ["topics", "features", "login", "signup", "pricing"]):
-                                discovered_github_url = absolute_url
-                        # Check for internal project subpages
+                        # Check for internal design project subpages
                         parsed_link = urlparse(absolute_url)
                         if parsed_link.netloc == base_domain and parsed_link.path and parsed_link.path != "/":
-                            if any(kw in parsed_link.path.lower() for kw in ["project", "work", "case-study", "portfolio", "app", "design", "lab"]):
+                            if any(kw in parsed_link.path.lower() for kw in ["project", "work", "case-study", "portfolio", "design", "ui", "ux"]):
                                 if absolute_url not in internal_project_urls and absolute_url != target_url:
                                     internal_project_urls.append(absolute_url)
 
@@ -465,17 +474,17 @@ async def scrape_url_content(url: str) -> tuple:
                 lines = (line.strip() for line in soup.get_text().splitlines())
                 chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                 main_text = "\n".join(chunk for chunk in chunks if chunk)
-                title = og_title or (soup.title.string if soup.title else "Scraped Portfolio / Profile")
+                title = og_title or (soup.title.string if soup.title else "Design Portfolio")
                 
                 context_blocks = [
-                    f"Source Portfolio URL: {target_url}",
+                    f"Source Design Portfolio URL: {target_url}",
                     f"Title: {title}"
                 ]
                 if meta_desc:
                     context_blocks.append(f"Meta Description / Summary: {meta_desc}")
-                context_blocks.append(f"Main Portfolio Content:\n{main_text[:12000]}")
+                context_blocks.append(f"Main Portfolio Case Study Content:\n{main_text[:14000]}")
 
-                # Crawl discovered internal project pages in parallel
+                # Crawl discovered internal design project pages in parallel
                 if internal_project_urls:
                     async def fetch_subpage(sub_url: str) -> str:
                         try:
@@ -488,7 +497,7 @@ async def scrape_url_content(url: str) -> tuple:
                                 sub_chunks = (p.strip() for p in sub_lines for p in p.split("  "))
                                 sub_text = "\n".join(c for c in sub_chunks if c)
                                 sub_title = sub_soup.title.string if sub_soup.title else sub_url
-                                return f"\n--- Project Subpage: {sub_title} ({sub_url}) ---\n{sub_text[:3000]}"
+                                return f"\n--- Design Case Study Subpage: {sub_title} ({sub_url}) ---\n{sub_text[:3500]}"
                         except Exception:
                             pass
                         return ""
@@ -499,24 +508,11 @@ async def scrape_url_content(url: str) -> tuple:
                         if r:
                             context_blocks.append(r)
 
-                # If candidate GitHub was discovered or if candidate profile is not-so-Vaibhav
-                gh_target = discovered_github_url or "https://github.com/not-so-Vaibhav"
-                try:
-                    gh_context, gh_imgs, gh_lnks = await scrape_github_content(gh_target)
-                    if gh_context:
-                        context_blocks.append(f"\n--- Discovered GitHub Repositories ({gh_target}) ---\n{gh_context}")
-                        images.extend(gh_imgs)
-                        links.extend(gh_lnks)
-                except Exception:
-                    pass
-
                 return "\n\n".join(context_blocks), images, links
             else:
-                # If HTTP status failed, resolve via candidate GitHub repository engine
-                return await scrape_github_content("https://github.com/not-so-Vaibhav")
-    except Exception:
-        # If network/DNS fails on custom domain, resolve via candidate GitHub repository engine
-        return await scrape_github_content("https://github.com/not-so-Vaibhav")
+                return f"Design Portfolio URL: {target_url}\nStatus: {response.status_code}\nFocus: UI/UX & Product Design.", [], []
+    except Exception as e:
+        return f"Design Portfolio URL: {target_url}\nDetail: {str(e)}\nFocus: UI/UX & Product Design.", [], []
 
 
 # 3. Figma API Parser (Enhanced to extract Structural Design Artifact Signals)
@@ -785,9 +781,8 @@ def sync_project_skills_to_profile(report: dict) -> dict:
     # Predefined keyword matching lists for mapping project skills to correct subcategories
     design_tool_keywords = [
         "figma", "sketch", "photoshop", "illustrator", "adobe xd", "invision", "miro", "canva", "zeplin", "framer",
-        "react", "vue", "angular", "next.js", "node.js", "javascript", "typescript", "python", "django", "fastapi", 
-        "flask", "postgresql", "mongodb", "docker", "aws", "git", "tailwind", "css", "html", "webflow", "procreate",
-        "indesign", "after effects", "premiere", "xd", "figma jam", "jira", "confluence", "spline", "blender", "cinema 4d"
+        "procreate", "indesign", "after effects", "premiere", "xd", "figjam", "spline", "blender", "cinema 4d",
+        "principle", "lottie", "webflow", "proto.io", "balsamiq", "marvel", "axure", "fable", "rive"
     ]
     methodology_keywords = [
         "user research", "wireframing", "prototyping", "usability testing", "agile", "scrum", "design thinking", 

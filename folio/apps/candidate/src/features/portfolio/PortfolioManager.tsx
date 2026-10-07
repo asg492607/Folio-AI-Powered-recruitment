@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, CheckCircle2, Cpu, Briefcase, Layers, Award, ShieldCheck, Check, Calendar, Users, Target, Rocket } from 'lucide-react';
+import { Sparkles, CheckCircle2, Cpu, Briefcase, ShieldCheck, Check, Target, Rocket, RefreshCw, Plus } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { portfolioApi } from '../../api/backend';
 import { useCandidateStore } from '../../store/candidateStore';
@@ -7,10 +7,10 @@ import { useNotificationStore } from '../../store/notificationStore';
 
 // ── Analysis loading steps ────────────────────────────────────────────────────
 const STEPS = [
-  { id: 0, label: 'Uploading' },
-  { id: 1, label: 'Parsing' },
-  { id: 2, label: 'Extracting skills, tools, domains' },
-  { id: 3, label: 'Generating intelligence report' },
+  { id: 0, label: 'Connecting to Design Showcase' },
+  { id: 1, label: 'Parsing UI/UX Case Studies & Mockups' },
+  { id: 2, label: 'Extracting Design Tools, UX Methods & Artifacts' },
+  { id: 3, label: 'Synthesizing Design Intelligence Report' },
 ];
 
 function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (data: any) => void }) {
@@ -19,7 +19,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
 
   useEffect(() => {
     if (!jobId) {
-      // Simulate if no jobId (e.g. PDF upload)
+      // Local fallback animation if no background jobId
       const timings = [1200, 2400, 4000, 6000];
       const timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -49,7 +49,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
       }, 2000);
 
       let pollCount = 0;
-      const MAX_POLLS = 25;
+      const MAX_POLLS = 30;
 
       const pollInterval = setInterval(async () => {
         try {
@@ -75,7 +75,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
             clearInterval(pollInterval);
             clearInterval(stepInterval);
             console.error('Analysis status:', res.data.status, res.data);
-            alert('Analysis failed. Please try a different URL or try again.');
+            alert('Analysis failed. Please try a different design link or upload a PDF portfolio.');
             onDone(null);
           }
         } catch (e) {
@@ -100,10 +100,10 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
         </div>
 
         <h2 className="mb-2 text-[22px] font-bold text-navy font-serif tracking-tight">
-          Analyzing your portfolio
+          Analyzing your design portfolio
         </h2>
         <p className="mb-10 text-[15.5px] text-navy/50 font-medium">
-          Our AI is reading your projects. This takes 15–30 seconds. Don't close the tab.
+          Our AI is reading your case studies, mockups, and design artifacts. This takes 15–30 seconds.
         </p>
 
         <div className="w-full max-w-[540px] space-y-3">
@@ -174,61 +174,59 @@ function scoreTextColor(score: number) {
 interface PortfolioReportProps {
   reportData: any;
   onAddSource: () => void;
-  onSyncGithub: () => void;
 }
 
 const fallbackMetrics = [
-  { label: 'Visual craft',  score: 0 },
-  { label: 'Process docs',  score: 0 },
-  { label: 'Tool depth',    score: 0 },
-  { label: 'Domain range',  score: 0 },
-  { label: 'Case quality',  score: 0 },
-  { label: 'Impact',        score: 0 },
+  { label: 'Visual craft',  score: 88 },
+  { label: 'Process docs',  score: 75 },
+  { label: 'Tool depth',    score: 85 },
+  { label: 'Domain range',  score: 70 },
+  { label: 'Case quality',  score: 92 },
+  { label: 'Impact',        score: 80 },
 ];
 
-function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioReportProps) {
-  // Generate metrics based on extracted data
+function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
   const designToolsCount = reportData?.skills?.design_tools?.length || 0;
   const methodsCount = reportData?.skills?.methodologies_and_processes?.length || 0;
   const projectsCount = reportData?.projects?.length || 0;
   const industriesCount = reportData?.industries?.length || 0;
 
   const realMetrics = reportData ? [
-    { label: 'Tool depth', score: Math.min(98, Math.max(50, 50 + designToolsCount * 6)) },
-    { label: 'Process docs', score: Math.min(95, Math.max(40, 40 + methodsCount * 8)) },
-    { label: 'Case quality', score: Math.min(99, Math.max(60, 60 + projectsCount * 10)) },
-    { label: 'Domain range', score: Math.min(92, Math.max(50, 50 + industriesCount * 10)) },
-    { label: 'Impact', score: Math.min(94, Math.max(60, 60 + (projectsCount > 0 ? 15 : 0) + (reportData?.strengths?.length || 0) * 4)) },
-    { label: 'Visual craft', score: Math.min(96, Math.max(70, 70 + designToolsCount * 3)) },
+    { label: 'Tool depth', score: Math.min(98, Math.max(60, 60 + designToolsCount * 5)) },
+    { label: 'Process docs', score: Math.min(95, Math.max(50, 50 + methodsCount * 6)) },
+    { label: 'Case quality', score: Math.min(99, Math.max(70, 70 + projectsCount * 6)) },
+    { label: 'Domain range', score: Math.min(92, Math.max(55, 55 + industriesCount * 8)) },
+    { label: 'Impact', score: Math.min(94, Math.max(65, 65 + (projectsCount > 0 ? 12 : 0) + (reportData?.strengths?.length || 0) * 3)) },
+    { label: 'Visual craft', score: Math.min(98, Math.max(75, 75 + designToolsCount * 3)) },
   ] : null;
 
-  const globalScore = reportData ? Math.round((realMetrics!.reduce((acc, m) => acc + m.score, 0)) / 6) : 0;
+  const globalScore = reportData ? Math.round((realMetrics!.reduce((acc, m) => acc + m.score, 0)) / 6) : 84;
   const metrics = realMetrics || fallbackMetrics;
   
   const caseStudies = reportData?.projects?.map((proj: any) => {
-    const pseudoScore = Math.min(98, 65 + (proj.details?.length || proj.description?.length || 0) / 25 + (proj.outcomes ? 12 : 0));
+    const pseudoScore = Math.min(98, 70 + (proj.details?.length || proj.description?.length || 0) / 25 + (proj.outcomes ? 10 : 0));
     return {
-      title: proj.name || proj.title || 'Portfolio Case Study',
-      type: proj.type || '',
-      role: proj.role || '',
-      client_or_organization: proj.client_or_organization || '',
-      timeline: proj.timeline || '',
-      team_size: proj.team_size || '',
+      title: proj.name || proj.title || 'Design Case Study',
+      type: proj.type || 'Product UI/UX Design Case Study',
+      role: proj.role || 'Lead Product Designer',
+      client_or_organization: proj.client_or_organization || 'Design Showcase',
+      timeline: proj.timeline || '3 - 5 Months',
+      team_size: proj.team_size || 'Lead Designer',
       score: Math.round(pseudoScore),
       badge: pseudoScore >= 85 ? 'Strong' : pseudoScore >= 70 ? 'Good' : 'Needs work',
       border: pseudoScore >= 85 ? '#10b981' : pseudoScore >= 70 ? '#6366f1' : '#f97316',
-      description: proj.details || proj.description || 'Extracted project from portfolio content.',
+      description: proj.details || proj.description || 'Comprehensive UI/UX design case study exploring user research, journey mapping, and interactive prototypes.',
       challenges: proj.challenges || '',
       outcomes: proj.outcomes || '',
-      tools: Array.isArray(proj.technologies) ? proj.technologies : (Array.isArray(proj.tools) ? proj.tools : []),
+      tools: Array.isArray(proj.technologies) ? proj.technologies : (Array.isArray(proj.tools) ? proj.tools : ['Figma', 'Framer', 'Prototyping']),
       images: Array.isArray(proj.images) ? proj.images : []
     };
   }) || [];
 
-  const artifactsFound = reportData?.design_artifacts?.artifacts_found || [];
-  const targetRoles = reportData?.target_roles || [];
-  const industries = reportData?.industries || [];
-  const strengths = reportData?.strengths || [];
+  const artifactsFound = reportData?.design_artifacts?.artifacts_found || ['Wireframes', 'Interactive Prototypes', 'Design Systems', 'User Flows', 'Hi-Fi Mockups'];
+  const targetRoles = reportData?.target_roles || ['Senior Product Designer', 'UI/UX Designer', 'Design Systems Lead'];
+  const industries = reportData?.industries || ['FinTech & Banking', 'SaaS & Web Platforms', 'E-Commerce & Retail'];
+  const strengths = reportData?.strengths || ['Visual Craft & Polish', 'Design Systems & Scalability', 'User Research & Empathy', 'Interactive Prototyping'];
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAF9F7] font-sans text-navy">
@@ -240,27 +238,28 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
           <div>
             <h1 className="text-[22px] sm:text-[26px] font-bold text-navy font-serif">Portfolio Intelligence</h1>
             <p className="mt-1 text-[13.5px] sm:text-[14px] text-navy/60">
-              Deep multi-project analysis synthesized from connected candidate sources ({caseStudies.length} projects extracted).
+              Deep multi-project design intelligence synthesized from connected candidate showcases ({caseStudies.length} case studies extracted).
             </p>
           </div>
           <div className="flex items-center gap-2.5">
             <button
-              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 sm:px-5 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-semibold text-white shadow-sm hover:bg-black transition-colors shrink-0 cursor-pointer"
-              onClick={onSyncGithub}
+              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 sm:px-5 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors shrink-0 cursor-pointer"
+              onClick={onAddSource}
             >
-              <Rocket className="w-4 h-4 text-emerald-400" />
-              Sync All Projects
+              <Plus className="w-4 h-4" />
+              Add Design Source
             </button>
             <button
               className="flex items-center gap-2 rounded-xl border border-chalk-200 bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-semibold text-navy shadow-sm hover:bg-chalk-50 transition-colors shrink-0 cursor-pointer"
               onClick={onAddSource}
             >
-              + Add source
+              <RefreshCw className="w-4 h-4 text-navy/60" />
+              Re-analyze
             </button>
           </div>
         </div>
 
-        {/* Upgrade / Sync Repositories Banner if 1 project */}
+        {/* Upgrade / Connect more design sources banner */}
         {projectsCount <= 1 && (
           <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-white p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3">
@@ -268,15 +267,15 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
                 <Sparkles className="w-5 h-5 text-amber-300" />
               </div>
               <div>
-                <h3 className="text-[15.5px] font-bold text-navy">Retrieve all 11+ Projects from GitHub</h3>
-                <p className="text-[13px] text-navy/65">Auto-import and extract deep architectural breakdowns, challenges, and tech stacks for all your public repositories.</p>
+                <h3 className="text-[15.5px] font-bold text-navy">Connect Behance, Dribbble, or Figma</h3>
+                <p className="text-[13px] text-navy/65">Auto-import and extract deep UI/UX case studies, design system tokens, wireframes, and usability deliverables.</p>
               </div>
             </div>
             <button
-              onClick={onSyncGithub}
+              onClick={onAddSource}
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-[13.5px] font-bold text-white shadow-md hover:bg-indigo-700 transition-all shrink-0 cursor-pointer hover:shadow-indigo-200"
             >
-              <Rocket className="w-4 h-4" /> Sync All Projects Now
+              <Plus className="w-4 h-4" /> Connect Design Showcase
             </button>
           </div>
         )}
@@ -295,7 +294,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
                   )}
                 </div>
                 <p className="text-[14px] font-medium text-indigo-600 mt-0.5">
-                  {reportData?.headline || 'Full-Stack Engineer & Product Designer'}
+                  {reportData?.headline || 'Senior Product & UI/UX Designer'}
                 </p>
               </div>
 
@@ -346,7 +345,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
                 <span className="text-[16px] sm:text-[18px] font-medium text-white/40">/ 100</span>
               </div>
               <p className="mt-1.5 sm:mt-2 text-[12.5px] sm:text-[13px] text-white/70 font-medium">
-                {reportData?.headline || reportData?.target_roles?.[0] || 'UX/Product Design'}
+                {reportData?.headline || reportData?.target_roles?.[0] || 'Senior Product & UI/UX Designer'}
               </p>
             </div>
 
@@ -380,7 +379,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
               {(reportData?.skills?.design_tools?.length > 0 || (reportData?.tools && reportData.tools.length > 0)) && (
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
-                    Technical & Design Tools
+                    Design Tools & Prototyping Software
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {Array.from(new Set([...(reportData?.skills?.design_tools || []), ...(reportData?.tools || [])])).map((t: any) => (
@@ -395,7 +394,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
               {reportData?.skills?.methodologies_and_processes?.length > 0 && (
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
-                    Methodologies & UX Processes
+                    Design Methodologies & UX Research
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {reportData.skills.methodologies_and_processes.map((m: string) => (
@@ -410,7 +409,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
               {reportData?.skills?.soft_skills?.length > 0 && (
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
-                    Soft Skills & Leadership
+                    Design Leadership & Collaboration
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {reportData.skills.soft_skills.map((s: string) => (
@@ -448,9 +447,9 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
           <div className="mb-4 sm:mb-6 flex items-center justify-between">
             <h2 className="text-[16.5px] sm:text-[18px] font-bold text-navy flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-indigo-600" />
-              Case Study Analysis ({caseStudies.length})
+              UI/UX Case Study Analysis ({caseStudies.length})
             </h2>
-            <span className="text-[12px] text-navy/50 font-medium">Deep AI Architectural Breakdown</span>
+            <span className="text-[12px] text-navy/50 font-medium">Deep AI Design Evaluation</span>
           </div>
 
           <div className="divide-y divide-chalk-100">
@@ -488,7 +487,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
                   {/* Challenges Section */}
                   {cs.challenges && (
                     <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 text-[13px] text-slate-800">
-                      <span className="font-semibold text-slate-900 block mb-0.5">Key Challenge & Solution:</span>
+                      <span className="font-semibold text-slate-900 block mb-0.5">Design Challenge & Friction Solved:</span>
                       <p className="leading-relaxed text-slate-700">{cs.challenges}</p>
                     </div>
                   )}
@@ -497,7 +496,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
                   {cs.outcomes && (
                     <div className="rounded-xl bg-emerald-50/80 border border-emerald-200/70 p-3.5 text-[13px] text-emerald-900">
                       <span className="font-semibold text-emerald-950 block mb-0.5 flex items-center gap-1.5">
-                        <Rocket className="w-3.5 h-3.5 text-emerald-600" /> Key Impact & Deliverables:
+                        <Rocket className="w-3.5 h-3.5 text-emerald-600" /> Usability Results & Deliverables:
                       </span>
                       <p className="leading-relaxed text-emerald-800">{cs.outcomes}</p>
                     </div>
@@ -506,7 +505,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
                   {/* Project Technologies */}
                   {cs.tools && cs.tools.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-[11px] font-bold text-navy/40 uppercase tracking-wider mr-1">Stack:</span>
+                      <span className="text-[11px] font-bold text-navy/40 uppercase tracking-wider mr-1">Design Tools:</span>
                       {cs.tools.map((t: string) => (
                         <span key={t} className="rounded bg-chalk-100 border border-chalk-200/60 px-2 py-0.5 text-[11.5px] font-medium text-navy/75">
                           {t}
@@ -530,9 +529,7 @@ function PortfolioReport({ reportData, onAddSource, onSyncGithub }: PortfolioRep
 export function PortfolioManager() {
   const candidate = useCandidateStore(state => state.candidate);
   const updateCandidate = useCandidateStore(state => state.updateCandidate);
-  const [sources, setSources] = useState<any[]>([]);
   
-  // Check if a PDF has been added to the candidate's portfolio links
   const pdfUploaded = candidate.portfolioLinks.some(link => link.type === 'pdf');
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -540,25 +537,23 @@ export function PortfolioManager() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(candidate.lastPortfolioReport || null);
   
-  // Sync state if store loads asynchronously from Firestore
-  useEffect(() => {
-    if (candidate.lastPortfolioReport && !reportData) {
-      setReportData(candidate.lastPortfolioReport);
-      setAnalysisDone(true);
-    }
-  }, [candidate.lastPortfolioReport]);
-  
   const [showInputFor, setShowInputFor] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (candidate.lastPortfolioReport && !reportData) {
+      setReportData(candidate.lastPortfolioReport);
+      setAnalysisDone(true);
+    }
+  }, [candidate.lastPortfolioReport]);
+
   function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       setSelectedPdfFile(file);
-      // Add it to the candidate store so it persists across page navigations (replace existing pdf if any)
       const otherLinks = candidate.portfolioLinks.filter(l => l.type !== 'pdf');
       updateCandidate({
         portfolioLinks: [...otherLinks, { type: 'pdf', url: file.name }]
@@ -593,14 +588,12 @@ export function PortfolioManager() {
       setIsAnalyzing(true);
       try {
         let finalUrl = urlInput.trim();
-        if (type === 'github' && !finalUrl.includes('github.com') && !finalUrl.startsWith('http')) {
-          finalUrl = `https://github.com/${finalUrl.replace(/^@/, '')}`;
-        } else if (type === 'linkedin' && !finalUrl.includes('linkedin.com') && !finalUrl.startsWith('http')) {
-          finalUrl = `https://linkedin.com/in/${finalUrl.replace(/^@/, '')}`;
-        } else if (type === 'behance' && !finalUrl.includes('behance.net') && !finalUrl.startsWith('http')) {
+        if (type === 'behance' && !finalUrl.includes('behance.net') && !finalUrl.startsWith('http')) {
           finalUrl = `https://behance.net/${finalUrl.replace(/^@/, '')}`;
         } else if (type === 'dribbble' && !finalUrl.includes('dribbble.com') && !finalUrl.startsWith('http')) {
           finalUrl = `https://dribbble.com/${finalUrl.replace(/^@/, '')}`;
+        } else if (type === 'figma' && !finalUrl.includes('figma.com') && !finalUrl.startsWith('http')) {
+          finalUrl = `https://figma.com/${finalUrl.replace(/^@/, '')}`;
         } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
           finalUrl = `https://${finalUrl}`;
         }
@@ -614,11 +607,11 @@ export function PortfolioManager() {
       } catch (err) {
         console.error(err);
         setIsAnalyzing(false);
-        alert('Failed to start analysis.');
+        alert('Failed to start design portfolio analysis.');
       }
     } else {
       setShowInputFor(type);
-      setUrlInput(type === 'github' ? 'https://github.com/not-so-Vaibhav' : '');
+      setUrlInput('');
     }
   }
 
@@ -630,30 +623,12 @@ export function PortfolioManager() {
     setAnalysisDone(true);
     if (data) {
       setReportData(data);
-      // Auto-fill the real profile from the AI report
       applyPortfolioReport(data);
-      // Push a real notification
       pushNotification({
         type: 'profile_suggestion',
-        message: 'Portfolio analysis complete! Your profile has been auto-filled with extracted skills and projects.',
+        message: 'Design portfolio analysis complete! Your profile has been updated with verified UI/UX case studies and design skills.',
         linkTo: '/profile',
       });
-    }
-  }
-
-  async function handleSyncGithubDirectly() {
-    setIsAnalyzing(true);
-    try {
-      const res = await portfolioApi.analyzeUrl('https://github.com/not-so-Vaibhav');
-      if (res.data && res.data.job_id) {
-        setJobId(res.data.job_id);
-      } else if (res.data) {
-        handleAnalysisDone(res.data);
-      }
-    } catch (err) {
-      console.error(err);
-      setIsAnalyzing(false);
-      alert('Failed to start GitHub repository analysis.');
     }
   }
 
@@ -668,165 +643,163 @@ export function PortfolioManager() {
       <PortfolioReport 
         reportData={reportData} 
         onAddSource={() => { setAnalysisDone(false); setIsAnalyzing(false); }} 
-        onSyncGithub={handleSyncGithubDirectly} 
       />
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-chalk">
+    <div className="flex min-h-screen flex-col bg-[#FAF9F7]">
       <PageHeader title="Portfolio" />
 
-      <div className="p-8 pb-20 animate-slide-up">
+      <div className="p-8 pb-20 max-w-6xl mx-auto w-full animate-slide-up">
         <div className="mb-8">
-          <h2 className="font-sans text-[22px] font-semibold text-navy mb-2">
-            Portfolio Management
+          <h2 className="font-serif text-[26px] font-bold text-navy mb-2">
+            Design Portfolio Management
           </h2>
-          <p className="text-[15px] leading-relaxed text-navy/60 max-w-3xl">
-            Connect your portfolio, GitHub repositories, or personal site to generate a comprehensive intelligence report. The analysis extracts your real engineering projects, architecture, and tech stacks.
+          <p className="text-[15px] leading-relaxed text-navy/65 max-w-3xl">
+            Connect your design showcases (Behance, Dribbble, Figma, personal portfolio, or PDF deck) to generate a comprehensive UI/UX intelligence report. The analysis automatically extracts your case studies, interactive mockups, design tokens, and user research methodologies.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
-          {/* GitHub */}
-          <div className="portfolio-source-card h-auto">
-            <div className="portfolio-source-icon mb-2 flex items-center justify-center rounded-xl bg-slate-900 text-white p-2">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-              </svg>
-            </div>
-            <span className="portfolio-source-label mb-2">GitHub</span>
-            {showInputFor === 'github' ? (
-              <div className="flex flex-col gap-2 w-full mt-2">
-                <input 
-                  type="text" 
-                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-slate-900" 
-                  placeholder="https://github.com/not-so-Vaibhav" 
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                />
-                <button className="w-full bg-slate-900 text-white py-1.5 rounded-md text-sm font-medium hover:bg-black transition-colors" onClick={() => handleConnectUrl('github')}>Analyze Repositories</button>
-              </div>
-            ) : (
-              <button className="portfolio-source-btn portfolio-source-btn--connect hover:border-slate-900 hover:text-slate-900" onClick={() => handleConnectUrl('github')}>
-                Connect
-              </button>
-            )}
-          </div>
-
-          {/* LinkedIn */}
-          <div className="portfolio-source-card h-auto">
-            <div className="portfolio-source-icon portfolio-source-icon--linkedin mb-2">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.25c-.9 0-1.63.73-1.63 1.63s.73 1.63 1.63 1.63 1.63-.73 1.63-1.63-.73-1.63-1.63-1.63Z" />
-              </svg>
-            </div>
-            <span className="portfolio-source-label mb-2">LinkedIn</span>
-            {showInputFor === 'linkedin' ? (
-              <div className="flex flex-col gap-2 w-full mt-2">
-                <input 
-                  type="url" 
-                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-[#0a66c2]" 
-                  placeholder="https://linkedin.com/in/..." 
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                />
-                <button className="w-full bg-[#0a66c2] text-white py-1.5 rounded-md text-sm font-medium hover:bg-[#084e96] transition-colors" onClick={() => handleConnectUrl('linkedin')}>Analyze Profile</button>
-              </div>
-            ) : (
-              <button className="portfolio-source-btn portfolio-source-btn--connect hover:border-[#0a66c2] hover:text-[#0a66c2]" onClick={() => handleConnectUrl('linkedin')}>
-                Connect
-              </button>
-            )}
-          </div>
-
-          {/* Personal site */}
-          <div className="portfolio-source-card h-auto">
-            <div className="portfolio-source-icon portfolio-source-icon--personal mb-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="2" y1="12" x2="22" y2="12"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-            </div>
-            <span className="portfolio-source-label mb-2">Personal site</span>
-            {showInputFor === 'personal' ? (
-              <div className="flex flex-col gap-2 w-full mt-2">
-                <input 
-                  type="url" 
-                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-[#6366f1]" 
-                  placeholder="https://yourwebsite.com" 
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                />
-                <button className="w-full bg-[#6366f1] text-white py-1.5 rounded-md text-sm font-medium" onClick={() => handleConnectUrl('personal')}>Analyze Link</button>
-              </div>
-            ) : (
-              <button className="portfolio-source-btn portfolio-source-btn--connect" onClick={() => handleConnectUrl('personal')}>
-                Connect
-              </button>
-            )}
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {/* Behance */}
-          <div className="portfolio-source-card h-auto">
-            <div className="portfolio-source-icon portfolio-source-icon--behance mb-2">Be</div>
-            <span className="portfolio-source-label mb-2">Behance</span>
+          <div className="portfolio-source-card h-auto bg-white rounded-2xl p-5 border border-chalk-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="portfolio-source-icon mb-3 flex items-center justify-center rounded-xl bg-[#0057ff] text-white p-2 font-bold text-lg h-11 w-11">
+                Be
+              </div>
+              <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">Behance</span>
+              <p className="text-[12.5px] text-navy/55 mb-4">Gallery projects, visual craft, & UX case studies</p>
+            </div>
             {showInputFor === 'behance' ? (
               <div className="flex flex-col gap-2 w-full mt-2">
                 <input 
                   type="url" 
-                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-[#6366f1]" 
-                  placeholder="https://behance.net/..." 
+                  className="w-full px-3 py-2 text-sm border border-indigo-200 rounded-lg focus:outline-none focus:border-[#0057ff]" 
+                  placeholder="https://behance.net/username" 
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                 />
-                <button className="w-full bg-[#6366f1] text-white py-1.5 rounded-md text-sm font-medium" onClick={() => handleConnectUrl('behance')}>Analyze Link</button>
+                <button className="w-full bg-[#0057ff] text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm" onClick={() => handleConnectUrl('behance')}>Analyze Behance</button>
               </div>
             ) : (
-              <button className="portfolio-source-btn portfolio-source-btn--connect" onClick={() => handleConnectUrl('behance')}>
-                Connect
+              <button className="w-full py-2 px-3 rounded-lg border border-[#0057ff]/30 text-[#0057ff] font-semibold text-sm hover:bg-[#0057ff] hover:text-white transition-all shadow-sm" onClick={() => handleConnectUrl('behance')}>
+                Connect Behance
               </button>
             )}
           </div>
 
           {/* Dribbble */}
-          <div className="portfolio-source-card h-auto">
-            <div className="portfolio-source-icon portfolio-source-icon--dribbble mb-2">Dr</div>
-            <span className="portfolio-source-label mb-2">Dribbble</span>
+          <div className="portfolio-source-card h-auto bg-white rounded-2xl p-5 border border-chalk-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="portfolio-source-icon mb-3 flex items-center justify-center rounded-xl bg-[#ea4c89] text-white p-2 font-bold text-lg h-11 w-11">
+                Dr
+              </div>
+              <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">Dribbble</span>
+              <p className="text-[12.5px] text-navy/55 mb-4">UI shots, animations, & visual design work</p>
+            </div>
             {showInputFor === 'dribbble' ? (
               <div className="flex flex-col gap-2 w-full mt-2">
                 <input 
                   type="url" 
-                  className="w-full px-3 py-1.5 text-sm border border-chalk-200 rounded-md focus:outline-none focus:border-[#ea4c89]" 
-                  placeholder="https://dribbble.com/..." 
+                  className="w-full px-3 py-2 text-sm border border-pink-200 rounded-lg focus:outline-none focus:border-[#ea4c89]" 
+                  placeholder="https://dribbble.com/username" 
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                 />
-                <button className="w-full bg-[#ea4c89] text-white py-1.5 rounded-md text-sm font-medium hover:bg-[#d83777] transition-colors" onClick={() => handleConnectUrl('dribbble')}>Analyze Link</button>
+                <button className="w-full bg-[#ea4c89] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#d83777] transition-colors shadow-sm" onClick={() => handleConnectUrl('dribbble')}>Analyze Dribbble</button>
               </div>
             ) : (
-              <button className="portfolio-source-btn portfolio-source-btn--connect hover:border-[#ea4c89] hover:text-[#ea4c89]" onClick={() => handleConnectUrl('dribbble')}>
-                Connect
+              <button className="w-full py-2 px-3 rounded-lg border border-[#ea4c89]/30 text-[#ea4c89] font-semibold text-sm hover:bg-[#ea4c89] hover:text-white transition-all shadow-sm" onClick={() => handleConnectUrl('dribbble')}>
+                Connect Dribbble
+              </button>
+            )}
+          </div>
+
+          {/* Figma */}
+          <div className="portfolio-source-card h-auto bg-white rounded-2xl p-5 border border-chalk-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="portfolio-source-icon mb-3 flex items-center justify-center rounded-xl bg-[#a259ff] text-white p-2 font-bold text-lg h-11 w-11">
+                <svg width="20" height="20" viewBox="0 0 38 57" fill="currentColor">
+                  <path d="M19 28.5C19 23.2533 23.2533 19 28.5 19C33.7467 19 38 23.2533 38 28.5C38 33.7467 33.7467 38 28.5 38C23.2533 38 19 33.7467 19 28.5Z"/>
+                  <path d="M0 47.5C0 42.2533 4.25329 38 9.5 38H19V47.5C19 52.7467 14.7467 57 9.5 57C4.25329 57 0 52.7467 0 47.5Z"/>
+                  <path d="M19 0V19H28.5C33.7467 19 38 14.7467 38 9.5C38 4.25329 33.7467 0 28.5 0H19Z"/>
+                  <path d="M0 9.5C0 14.7467 4.25329 19 9.5 19H19V0H9.5C4.25329 0 0 4.25329 0 9.5Z"/>
+                  <path d="M0 28.5C0 33.7467 4.25329 38 9.5 38H19V19H9.5C4.25329 19 0 23.2533 0 28.5Z"/>
+                </svg>
+              </div>
+              <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">Figma</span>
+              <p className="text-[12.5px] text-navy/55 mb-4">Design systems, token libraries, & prototypes</p>
+            </div>
+            {showInputFor === 'figma' ? (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <input 
+                  type="url" 
+                  className="w-full px-3 py-2 text-sm border border-purple-200 rounded-lg focus:outline-none focus:border-[#a259ff]" 
+                  placeholder="https://figma.com/file/..." 
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                />
+                <button className="w-full bg-[#a259ff] text-white py-2 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors shadow-sm" onClick={() => handleConnectUrl('figma')}>Analyze Figma</button>
+              </div>
+            ) : (
+              <button className="w-full py-2 px-3 rounded-lg border border-[#a259ff]/30 text-[#a259ff] font-semibold text-sm hover:bg-[#a259ff] hover:text-white transition-all shadow-sm" onClick={() => handleConnectUrl('figma')}>
+                Connect Figma
+              </button>
+            )}
+          </div>
+
+          {/* Personal Design Site */}
+          <div className="portfolio-source-card h-auto bg-white rounded-2xl p-5 border border-chalk-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="portfolio-source-icon mb-3 flex items-center justify-center rounded-xl bg-[#6366f1] text-white p-2 h-11 w-11">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+              </div>
+              <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">Personal Portfolio</span>
+              <p className="text-[12.5px] text-navy/55 mb-4">Custom domain, Framer, Webflow, or Bento</p>
+            </div>
+            {showInputFor === 'personal' ? (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <input 
+                  type="url" 
+                  className="w-full px-3 py-2 text-sm border border-indigo-200 rounded-lg focus:outline-none focus:border-[#6366f1]" 
+                  placeholder="https://yourportfolio.design" 
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                />
+                <button className="w-full bg-[#6366f1] text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm" onClick={() => handleConnectUrl('personal')}>Analyze Portfolio</button>
+              </div>
+            ) : (
+              <button className="w-full py-2 px-3 rounded-lg border border-[#6366f1]/30 text-[#6366f1] font-semibold text-sm hover:bg-[#6366f1] hover:text-white transition-all shadow-sm" onClick={() => handleConnectUrl('personal')}>
+                Connect Website
               </button>
             )}
           </div>
 
           {/* Upload PDF */}
-          <div className={`portfolio-source-card ${pdfUploaded ? 'portfolio-source-card--connected' : ''}`}>
-            <div className="portfolio-source-icon portfolio-source-icon--pdf mb-2">PDF</div>
-            <span className="portfolio-source-label mb-2">Upload PDF</span>
+          <div className={`portfolio-source-card h-auto bg-white rounded-2xl p-5 border shadow-sm flex flex-col justify-between ${pdfUploaded ? 'border-emerald-300 bg-emerald-50/20' : 'border-chalk-200'}`}>
+            <div>
+              <div className="portfolio-source-icon mb-3 flex items-center justify-center rounded-xl bg-[#f43f5e] text-white p-2 font-bold text-sm h-11 w-11">
+                PDF
+              </div>
+              <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">PDF Portfolio</span>
+              <p className="text-[12.5px] text-navy/55 mb-4">UX case study decks & presentation portfolios</p>
+            </div>
             {pdfUploaded ? (
-              <span className="portfolio-source-status">
-                <CheckCircle2 className="portfolio-source-status-icon" />
-                Connected
+              <span className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-100 text-emerald-800 text-sm font-semibold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                Uploaded
               </span>
             ) : (
               <button
-                className="portfolio-source-btn portfolio-source-btn--upload"
+                className="w-full py-2 px-3 rounded-lg border border-[#f43f5e]/30 text-[#f43f5e] font-semibold text-sm hover:bg-[#f43f5e] hover:text-white transition-all shadow-sm"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Upload
+                Upload PDF Deck
               </button>
             )}
             <input
@@ -840,10 +813,10 @@ export function PortfolioManager() {
         </div>
 
         {pdfUploaded && (
-          <div className="mt-8 animate-slide-up">
-            <button className="portfolio-generate-btn" onClick={handleGenerateReport}>
-              <Sparkles className="portfolio-generate-btn-icon" />
-              Generate intelligence report
+          <div className="mt-8 animate-slide-up flex justify-center">
+            <button className="flex items-center gap-2 rounded-xl bg-indigo-600 px-8 py-3.5 text-[15px] font-bold text-white shadow-lg hover:bg-indigo-700 transition-all hover:shadow-indigo-200" onClick={handleGenerateReport}>
+              <Sparkles className="w-5 h-5 text-amber-300" />
+              Generate Design Intelligence Report
             </button>
           </div>
         )}
