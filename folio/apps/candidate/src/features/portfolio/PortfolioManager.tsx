@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, CheckCircle2, Cpu } from 'lucide-react';
+import { Sparkles, CheckCircle2, Cpu, Briefcase, Layers, Award, ShieldCheck, Check, Calendar, Users, Target, Rocket } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { portfolioApi } from '../../api/backend';
 import { useCandidateStore } from '../../store/candidateStore';
@@ -49,7 +49,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
       }, 2000);
 
       let pollCount = 0;
-      const MAX_POLLS = 20;
+      const MAX_POLLS = 25;
 
       const pollInterval = setInterval(async () => {
         try {
@@ -70,7 +70,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
             setCompletedSteps([0, 1, 2, 3]);
             setTimeout(() => {
               onDone(res.data.results);
-            }, 1000);
+            }, 800);
           } else if (res.data.status === 'failed' || res.data.status === 'error') {
             clearInterval(pollInterval);
             clearInterval(stepInterval);
@@ -81,7 +81,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
         } catch (e) {
           console.error("Polling error:", e);
         }
-      }, 3000);
+      }, 2500);
 
       return () => {
         clearInterval(pollInterval);
@@ -103,7 +103,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
           Analyzing your portfolio
         </h2>
         <p className="mb-10 text-[15.5px] text-navy/50 font-medium">
-          Our AI is reading your projects. This takes 20–40 seconds. Don't close the tab.
+          Our AI is reading your projects. This takes 15–30 seconds. Don't close the tab.
         </p>
 
         <div className="w-full max-w-[540px] space-y-3">
@@ -144,8 +144,8 @@ function ScoreBar({ score, max = 100 }: { score: number; max?: number }) {
   const pct = (score / max) * 100;
   const color = score >= 80 ? '#10b981' : score >= 65 ? '#6366f1' : '#f97316';
   return (
-    <div className="h-1 w-full rounded-full bg-white/10">
-      <div className="h-1 rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+    <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+      <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
     </div>
   );
 }
@@ -158,7 +158,7 @@ function CaseBadge({ label }: { label: string }) {
     Incomplete: 'bg-[#ede9fe] text-[#7c3aed]',
   };
   return (
-    <span className={`rounded-full px-3 py-1 text-[12px] font-semibold ${styles[label] ?? 'bg-chalk-200 text-navy/60'}`}>
+    <span className={`rounded-full px-3 py-0.5 text-[12px] font-semibold ${styles[label] ?? 'bg-chalk-200 text-navy/60'}`}>
       {label}
     </span>
   );
@@ -208,36 +208,103 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
     const pseudoScore = Math.min(98, 65 + (proj.details?.length || proj.description?.length || 0) / 25 + (proj.outcomes ? 12 : 0));
     return {
       title: proj.name || proj.title || 'Portfolio Case Study',
+      type: proj.type || '',
       role: proj.role || '',
+      client_or_organization: proj.client_or_organization || '',
+      timeline: proj.timeline || '',
+      team_size: proj.team_size || '',
       score: Math.round(pseudoScore),
       badge: pseudoScore >= 85 ? 'Strong' : pseudoScore >= 70 ? 'Good' : 'Needs work',
       border: pseudoScore >= 85 ? '#10b981' : pseudoScore >= 70 ? '#6366f1' : '#f97316',
       description: proj.details || proj.description || 'Extracted project from portfolio content.',
+      challenges: proj.challenges || '',
+      outcomes: proj.outcomes || '',
       tools: Array.isArray(proj.technologies) ? proj.technologies : (Array.isArray(proj.tools) ? proj.tools : []),
-      outcomes: proj.outcomes || ''
+      images: Array.isArray(proj.images) ? proj.images : []
     };
   }) || [];
+
+  const artifactsFound = reportData?.design_artifacts?.artifacts_found || [];
+  const targetRoles = reportData?.target_roles || [];
+  const industries = reportData?.industries || [];
+  const strengths = reportData?.strengths || [];
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAF9F7] font-sans text-navy">
       <PageHeader title="Portfolio" />
 
-      <div className="flex-1 p-4 sm:p-8 pb-20 max-w-5xl mx-auto w-full">
-        <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="flex-1 p-4 sm:p-8 pb-20 max-w-5xl mx-auto w-full space-y-6">
+        {/* Header with Title & Action */}
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[20px] sm:text-[24px] font-bold text-navy">Portfolio Intelligence</h1>
-            <p className="mt-1 text-[13px] sm:text-[14px] text-navy/50">Analysis based on connected sources.</p>
+            <h1 className="text-[22px] sm:text-[26px] font-bold text-navy font-serif">Portfolio Intelligence</h1>
+            <p className="mt-1 text-[13.5px] sm:text-[14px] text-navy/60">
+              Deep multi-project analysis synthesized from connected candidate sources.
+            </p>
           </div>
           <button
-            className="flex items-center gap-2 rounded-xl border border-chalk-200 bg-white px-3.5 sm:px-5 py-2 sm:py-2.5 text-[13px] sm:text-[14px] font-semibold text-navy shadow-sm hover:bg-chalk-50 transition-colors shrink-0"
+            className="flex items-center gap-2 rounded-xl border border-chalk-200 bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-semibold text-navy shadow-sm hover:bg-chalk-50 transition-colors shrink-0"
             onClick={onAddSource}
           >
             + Add source
           </button>
         </div>
 
+        {/* Candidate Profile Header Card */}
+        {reportData?.full_name && (
+          <div className="rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-[20px] sm:text-[22px] font-bold text-navy">{reportData.full_name}</h2>
+                  {reportData?.candidate_id && (
+                    <span className="rounded bg-chalk-100 px-2 py-0.5 font-mono text-[11px] font-medium text-navy/50">
+                      {reportData.candidate_id}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[14px] font-medium text-indigo-600 mt-0.5">
+                  {reportData?.headline || 'Full-Stack Engineer & Product Designer'}
+                </p>
+              </div>
+
+              {/* Target Roles */}
+              {targetRoles.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                  <span className="text-[11.5px] font-semibold uppercase tracking-wider text-navy/40 mr-1 flex items-center gap-1">
+                    <Target className="w-3.5 h-3.5" /> Target Roles:
+                  </span>
+                  {targetRoles.map((r: string) => (
+                    <span key={r} className="rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[12px] font-semibold text-indigo-700">
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Strengths & Industries row */}
+            {(strengths.length > 0 || industries.length > 0) && (
+              <div className="mt-4 pt-4 border-t border-chalk-100 flex flex-wrap gap-4 text-[13px]">
+                {industries.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-navy/70">
+                    <span className="font-semibold text-navy/40 text-[11.5px] uppercase">Industries:</span>
+                    <span className="font-medium">{industries.join(', ')}</span>
+                  </div>
+                )}
+                {strengths.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-navy/70">
+                    <span className="font-semibold text-navy/40 text-[11.5px] uppercase">Core Strengths:</span>
+                    <span className="font-medium">{strengths.join(' • ')}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Intelligence Score Banner */}
-        <div className="mb-6 rounded-2xl bg-[#1a1a2e] p-5 sm:p-8">
+        <div className="rounded-2xl bg-[#1a1a2e] p-5 sm:p-8 text-white">
           <p className="mb-3 sm:mb-4 font-mono text-[10.5px] sm:text-[11px] tracking-widest text-white/40 uppercase">
             Portfolio Intelligence Score
           </p>
@@ -247,7 +314,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
                 <span className="text-[52px] sm:text-[72px] font-extrabold leading-none text-[#10b981]">{globalScore}</span>
                 <span className="text-[16px] sm:text-[18px] font-medium text-white/40">/ 100</span>
               </div>
-              <p className="mt-1.5 sm:mt-2 text-[12.5px] sm:text-[13px] text-white/60 font-medium">
+              <p className="mt-1.5 sm:mt-2 text-[12.5px] sm:text-[13px] text-white/70 font-medium">
                 {reportData?.headline || reportData?.target_roles?.[0] || 'UX/Product Design'}
               </p>
             </div>
@@ -266,62 +333,156 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
           </div>
         </div>
 
-        {/* Candidate Profile Summary Card */}
+        {/* Executive Summary Card */}
         {reportData?.summary && (
-          <div className="mb-6 rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
-            <h2 className="mb-2 text-[16px] sm:text-[17px] font-bold text-navy">Executive Summary</h2>
-            <p className="text-[13.5px] sm:text-[14px] leading-relaxed text-navy/70">{reportData.summary}</p>
+          <div className="rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]">
+            <h2 className="mb-2.5 text-[16.5px] sm:text-[18px] font-bold text-navy flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-500" />
+              Executive Summary
+            </h2>
+            <p className="text-[14px] sm:text-[14.5px] leading-relaxed text-navy/70 font-normal">
+              {reportData.summary}
+            </p>
             
-            {/* Skills & Tools badges */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {(reportData?.skills?.design_tools || []).map((t: string) => (
-                <span key={t} className="rounded-md bg-indigo-50 border border-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-700">
-                  {t}
-                </span>
-              ))}
-              {(reportData?.skills?.methodologies_and_processes || []).map((m: string) => (
-                <span key={m} className="rounded-md bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-[12px] font-semibold text-emerald-700">
-                  {m}
-                </span>
+            {/* Skills Taxonomy Breakdown */}
+            <div className="mt-5 pt-4 border-t border-chalk-100 space-y-3">
+              {(reportData?.skills?.design_tools?.length > 0 || (reportData?.tools && reportData.tools.length > 0)) && (
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
+                    Technical & Design Tools
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Array.from(new Set([...(reportData?.skills?.design_tools || []), ...(reportData?.tools || [])])).map((t: any) => (
+                      <span key={t} className="rounded-md bg-indigo-50/80 border border-indigo-100 px-2.5 py-1 text-[12px] font-semibold text-indigo-700">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {reportData?.skills?.methodologies_and_processes?.length > 0 && (
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
+                    Methodologies & UX Processes
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {reportData.skills.methodologies_and_processes.map((m: string) => (
+                      <span key={m} className="rounded-md bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-[12px] font-semibold text-emerald-700">
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {reportData?.skills?.soft_skills?.length > 0 && (
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
+                    Soft Skills & Leadership
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {reportData.skills.soft_skills.map((s: string) => (
+                      <span key={s} className="rounded-md bg-amber-50 border border-amber-100 px-2.5 py-1 text-[12px] font-semibold text-amber-700">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Design Artifacts Verification Audit */}
+        {artifactsFound.length > 0 && (
+          <div className="rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]">
+            <h2 className="mb-3 text-[16.5px] sm:text-[18px] font-bold text-navy flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              Verified Design Artifacts
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {artifactsFound.map((art: string) => (
+                <div key={art} className="flex items-center gap-1.5 rounded-lg bg-emerald-50/80 border border-emerald-200/80 px-3 py-1.5 text-[12.5px] font-semibold text-emerald-800">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                  <span className="capitalize">{art}</span>
+                </div>
               ))}
             </div>
           </div>
         )}
 
         {/* Case Studies Breakdown */}
-        <div className="rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]">
-          <h2 className="mb-4 sm:mb-5 text-[16px] sm:text-[18px] font-bold text-navy">Case study analysis</h2>
+        <div className="rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]">
+          <div className="mb-4 sm:mb-6 flex items-center justify-between">
+            <h2 className="text-[16.5px] sm:text-[18px] font-bold text-navy flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-indigo-600" />
+              Case Study Analysis ({caseStudies.length})
+            </h2>
+            <span className="text-[12px] text-navy/50 font-medium">Deep AI Architectural Breakdown</span>
+          </div>
+
           <div className="divide-y divide-chalk-100">
             {caseStudies.length > 0 ? caseStudies.map((cs: any) => (
-              <div key={cs.title} className="py-5 first:pt-0 last:pb-0">
-                <div className="flex pl-3 sm:pl-4" style={{ borderLeft: `3px solid ${cs.border}` }}>
-                  <div className="flex-1">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14.5px] sm:text-[15.5px] font-bold text-navy">{cs.title}</span>
-                        {cs.role && <span className="text-[12px] text-navy/40 font-medium">({cs.role})</span>}
-                      </div>
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <span className={`text-[15px] sm:text-[16px] font-extrabold ${scoreTextColor(cs.score)}`}>{cs.score}</span>
-                        <CaseBadge label={cs.badge} />
-                      </div>
-                    </div>
-                    <p className="text-[13px] sm:text-[14px] leading-relaxed text-navy/60">{cs.description}</p>
-                    {cs.outcomes && (
-                      <div className="mt-2.5 rounded-lg bg-emerald-50/70 border border-emerald-100/60 px-3 py-1.5 text-[12px] text-emerald-800">
-                        <span className="font-semibold">Key Impact: </span>{cs.outcomes}
-                      </div>
-                    )}
-                    {cs.tools && cs.tools.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {cs.tools.map((t: string) => (
-                          <span key={t} className="rounded bg-chalk-100 px-2 py-0.5 text-[11px] font-medium text-navy/70">
-                            {t}
+              <div key={cs.title} className="py-6 first:pt-0 last:pb-0">
+                <div className="pl-4 sm:pl-5 space-y-3" style={{ borderLeft: `3.5px solid ${cs.border}` }}>
+                  {/* Title and Badge Row */}
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[16px] sm:text-[17px] font-bold text-navy">{cs.title}</span>
+                        {cs.type && (
+                          <span className="rounded bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 text-[11.5px] font-medium text-indigo-700">
+                            {cs.type}
                           </span>
-                        ))}
+                        )}
                       </div>
-                    )}
+                      {cs.role && (
+                        <p className="text-[13px] text-navy/60 font-medium mt-0.5">
+                          {cs.role} {cs.client_or_organization ? `• ${cs.client_or_organization}` : ''}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                      <span className={`text-[16px] sm:text-[17px] font-extrabold ${scoreTextColor(cs.score)}`}>{cs.score}</span>
+                      <CaseBadge label={cs.badge} />
+                    </div>
                   </div>
+
+                  {/* Project Details / Scope */}
+                  <p className="text-[13.5px] sm:text-[14px] leading-relaxed text-navy/70">
+                    {cs.description}
+                  </p>
+
+                  {/* Challenges Section */}
+                  {cs.challenges && (
+                    <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 text-[13px] text-slate-800">
+                      <span className="font-semibold text-slate-900 block mb-0.5">Key Challenge & Solution:</span>
+                      <p className="leading-relaxed text-slate-700">{cs.challenges}</p>
+                    </div>
+                  )}
+
+                  {/* Outcomes / Impact Section */}
+                  {cs.outcomes && (
+                    <div className="rounded-xl bg-emerald-50/80 border border-emerald-200/70 p-3.5 text-[13px] text-emerald-900">
+                      <span className="font-semibold text-emerald-950 block mb-0.5 flex items-center gap-1.5">
+                        <Rocket className="w-3.5 h-3.5 text-emerald-600" /> Key Impact & Deliverables:
+                      </span>
+                      <p className="leading-relaxed text-emerald-800">{cs.outcomes}</p>
+                    </div>
+                  )}
+
+                  {/* Project Technologies */}
+                  {cs.tools && cs.tools.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[11px] font-bold text-navy/40 uppercase tracking-wider mr-1">Stack:</span>
+                      {cs.tools.map((t: string) => (
+                        <span key={t} className="rounded bg-chalk-100 border border-chalk-200/60 px-2 py-0.5 text-[11.5px] font-medium text-navy/75">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )) : (

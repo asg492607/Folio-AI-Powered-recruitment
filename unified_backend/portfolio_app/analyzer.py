@@ -530,40 +530,76 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
     """
 
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
-    configured_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-    candidate_models = [configured_model, "gemini-3.5-flash", "gemini-2.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest", "gemini-pro-latest"]
+    configured_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    candidate_models = [configured_model, "gemini-3.5-flash-lite", "gemini-3.8-flash"]
     # Deduplicate while preserving order
     models_to_try = list(dict.fromkeys(candidate_models))
 
-    # Primary: Google Gemini API (SDK + REST fallback)
+    # Primary: Google Gemini API
     if gemini_key:
-        from google import genai
-        client = genai.Client(api_key=gemini_key)
-        
-        for m in models_to_try:
-            try:
-                response = client.models.generate_content(
-                    model=m,
-                    contents=prompt,
-                    config={"response_mime_type": "application/json", "temperature": 0.2}
-                )
-                clean_text = response.text.strip()
-                match = re.search(r'\{[\s\S]*\}', clean_text)
-                if match:
-                    clean_text = match.group(0)
-                result = json.loads(clean_text)
-                if "candidate_id" not in result or not result["candidate_id"]:
-                    result["candidate_id"] = f"CAN-{str(uuid.uuid4())[:8].upper()}"
-                if "report_id" not in result or not result["report_id"]:
-                    result["report_id"] = str(uuid.uuid4())
-                if "generated_at" not in result or not result["generated_at"]:
-                    result["generated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
-                print(f"[Gemini API] Successfully analyzed portfolio using model: {m}")
-                return sync_project_skills_to_profile(result)
-            except Exception as e:
-                print(f"[Gemini API] Model {m} returned error: {e}. Trying next model...")
+        try:
+            from google import genai
+            client = genai.Client(api_key=gemini_key)
+            
+            for m in models_to_try:
+                try:
+                    response = client.models.generate_content(
+                        model=m,
+                        contents=prompt,
+                        config={"response_mime_type": "application/json", "temperature": 0.2}
+                    )
+                    clean_text = response.text.strip()
+                    match = re.search(r'\{[\s\S]*\}', clean_text)
+                    if match:
+                        clean_text = match.group(0)
+                    result = json.loads(clean_text)
+                    if "candidate_id" not in result or not result["candidate_id"]:
+                        result["candidate_id"] = f"CAN-{str(uuid.uuid4())[:8].upper()}"
+                    if "report_id" not in result or not result["report_id"]:
+                        result["report_id"] = str(uuid.uuid4())
+                    if "generated_at" not in result or not result["generated_at"]:
+                        result["generated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+                    print(f"[Gemini API] Successfully analyzed portfolio using model: {m}")
+                    return sync_project_skills_to_profile(result)
+                except Exception as e:
+                    print(f"[Gemini API] Model {m} returned error: {e}. Trying next model...")
+        except Exception as e:
+            print(f"[Gemini API] Client initialization error: {e}")
 
-    print("[Portfolio Analyzer] Gemini API unavailable or key invalid. Falling back to local heuristic extraction engine.")
+    # Secondary: Groq LLM API
+    groq_key = os.getenv("GROQ_API_KEY", "").strip()
+    if groq_key:
+        groq_models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
+        try:
+            from openai import OpenAI
+            groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=groq_key)
+            for gm in groq_models:
+                try:
+                    chat_resp = groq_client.chat.completions.create(
+                        model=gm,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.2,
+                        response_format={"type": "json_object"}
+                    )
+                    raw_content = chat_resp.choices[0].message.content.strip()
+                    match = re.search(r'\{[\s\S]*\}', raw_content)
+                    if match:
+                        raw_content = match.group(0)
+                    result = json.loads(raw_content)
+                    if "candidate_id" not in result or not result["candidate_id"]:
+                        result["candidate_id"] = f"CAN-{str(uuid.uuid4())[:8].upper()}"
+                    if "report_id" not in result or not result["report_id"]:
+                        result["report_id"] = str(uuid.uuid4())
+                    if "generated_at" not in result or not result["generated_at"]:
+                        result["generated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+                    print(f"[Groq API] Successfully analyzed portfolio using model: {gm}")
+                    return sync_project_skills_to_profile(result)
+                except Exception as e:
+                    print(f"[Groq API] Model {gm} returned error: {e}. Trying next model...")
+        except Exception as e:
+            print(f"[Groq API] Client initialization error: {e}")
+
+    print("[Portfolio Analyzer] AI APIs unavailable. Falling back to local heuristic extraction engine.")
     fallback_result = run_heuristic_analysis(text, filename, images=images)
     return sync_project_skills_to_profile(fallback_result)
 
