@@ -533,6 +533,14 @@ async def analyze_url(
         source_label = f"Web Portfolio ({url[:30]}...)"
         content, extracted_images, extracted_links = await scrape_url_content(url)
 
+    if not content or not content.strip():
+        db_job.status = "error"
+        db.commit()
+        raise HTTPException(
+            status_code=422,
+            detail="Could not read any public content from this link. Make sure the profile/project is public, or upload your portfolio as a PDF."
+        )
+
     # Register in Firestore for immediate state visibility
     fs = get_fs_client()
     if fs:

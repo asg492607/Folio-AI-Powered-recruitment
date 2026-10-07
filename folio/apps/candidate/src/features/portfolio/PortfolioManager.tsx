@@ -7,10 +7,10 @@ import { useNotificationStore } from '../../store/notificationStore';
 
 // ── Analysis loading steps ────────────────────────────────────────────────────
 const STEPS = [
-  { id: 0, label: 'Connecting to Design Showcase' },
-  { id: 1, label: 'Parsing UI/UX Case Studies & Mockups' },
-  { id: 2, label: 'Extracting Design Tools, UX Methods & Artifacts' },
-  { id: 3, label: 'Synthesizing Design Intelligence Report' },
+  { id: 0, label: 'Connecting to Portfolio Source' },
+  { id: 1, label: 'Parsing Profile & Case Studies' },
+  { id: 2, label: 'Extracting Skills, Tools & Artifacts' },
+  { id: 3, label: 'Synthesizing Intelligence Report' },
 ];
 
 function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (data: any) => void }) {
@@ -75,7 +75,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
             clearInterval(pollInterval);
             clearInterval(stepInterval);
             console.error('Analysis status:', res.data.status, res.data);
-            alert('Analysis failed. Please try a different design link or upload a PDF portfolio.');
+            alert('Analysis failed. Please verify the URL is publicly accessible or upload a PDF.');
             onDone(null);
           }
         } catch (e) {
@@ -100,10 +100,10 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
         </div>
 
         <h2 className="mb-2 text-[22px] font-bold text-navy font-serif tracking-tight">
-          Analyzing your design portfolio
+          Analyzing your portfolio
         </h2>
         <p className="mb-10 text-[15.5px] text-navy/50 font-medium">
-          Our AI is reading your case studies, mockups, and design artifacts. This takes 15–30 seconds.
+          Our AI is reading your projects, case studies, and artifacts. This takes 15–30 seconds.
         </p>
 
         <div className="w-full max-w-[540px] space-y-3">
@@ -122,7 +122,7 @@ function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (dat
                   <CheckCircle2 className="h-[22px] w-[22px] shrink-0 text-[#10b981]" strokeWidth={2.5} />
                 ) : isActive ? (
                   <svg className="h-[22px] w-[22px] shrink-0 animate-spin text-[#6366f1]" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="40 20" />
+                    <circle cx="12" cy="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="40 20" />
                   </svg>
                 ) : (
                   <div className="h-[22px] w-[22px] shrink-0 rounded-full border-2 border-chalk-300 bg-transparent" />
@@ -176,15 +176,6 @@ interface PortfolioReportProps {
   onAddSource: () => void;
 }
 
-const fallbackMetrics = [
-  { label: 'Visual craft',  score: 88 },
-  { label: 'Process docs',  score: 75 },
-  { label: 'Tool depth',    score: 85 },
-  { label: 'Domain range',  score: 70 },
-  { label: 'Case quality',  score: 92 },
-  { label: 'Impact',        score: 80 },
-];
-
 function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
   const designToolsCount = reportData?.skills?.design_tools?.length || 0;
   const methodsCount = reportData?.skills?.methodologies_and_processes?.length || 0;
@@ -192,41 +183,47 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
   const industriesCount = reportData?.industries?.length || 0;
 
   const realMetrics = reportData ? [
-    { label: 'Tool depth', score: Math.min(98, Math.max(60, 60 + designToolsCount * 5)) },
-    { label: 'Process docs', score: Math.min(95, Math.max(50, 50 + methodsCount * 6)) },
-    { label: 'Case quality', score: Math.min(99, Math.max(70, 70 + projectsCount * 6)) },
-    { label: 'Domain range', score: Math.min(92, Math.max(55, 55 + industriesCount * 8)) },
-    { label: 'Impact', score: Math.min(94, Math.max(65, 65 + (projectsCount > 0 ? 12 : 0) + (reportData?.strengths?.length || 0) * 3)) },
-    { label: 'Visual craft', score: Math.min(98, Math.max(75, 75 + designToolsCount * 3)) },
-  ] : null;
+    { label: 'Tool depth', score: Math.min(98, Math.max(40, 40 + designToolsCount * 6)) },
+    { label: 'Process docs', score: Math.min(95, Math.max(35, 35 + methodsCount * 8)) },
+    { label: 'Case quality', score: Math.min(99, Math.max(45, 45 + projectsCount * 12)) },
+    { label: 'Domain range', score: Math.min(92, Math.max(40, 40 + industriesCount * 10)) },
+    { label: 'Impact', score: Math.min(94, Math.max(45, 45 + (projectsCount > 0 ? 15 : 0) + (reportData?.strengths?.length || 0) * 5)) },
+    { label: 'Visual craft', score: Math.min(98, Math.max(50, 50 + designToolsCount * 4)) },
+  ] : [
+    { label: 'Visual craft',  score: 0 },
+    { label: 'Process docs',  score: 0 },
+    { label: 'Tool depth',    score: 0 },
+    { label: 'Domain range',  score: 0 },
+    { label: 'Case quality',  score: 0 },
+    { label: 'Impact',        score: 0 },
+  ];
 
-  const globalScore = reportData ? Math.round((realMetrics!.reduce((acc, m) => acc + m.score, 0)) / 6) : 84;
-  const metrics = realMetrics || fallbackMetrics;
+  const globalScore = reportData ? Math.round((realMetrics.reduce((acc, m) => acc + m.score, 0)) / 6) : 0;
   
   const caseStudies = reportData?.projects?.map((proj: any) => {
-    const pseudoScore = Math.min(98, 70 + (proj.details?.length || proj.description?.length || 0) / 25 + (proj.outcomes ? 10 : 0));
+    const pseudoScore = Math.min(98, 60 + (proj.details?.length || proj.description?.length || 0) / 25 + (proj.outcomes ? 10 : 0));
     return {
-      title: proj.name || proj.title || 'Design Case Study',
-      type: proj.type || 'Product UI/UX Design Case Study',
-      role: proj.role || 'Lead Product Designer',
-      client_or_organization: proj.client_or_organization || 'Design Showcase',
-      timeline: proj.timeline || '3 - 5 Months',
-      team_size: proj.team_size || 'Lead Designer',
+      title: proj.name || proj.title || 'Portfolio Case Study',
+      type: proj.type || '',
+      role: proj.role || '',
+      client_or_organization: proj.client_or_organization || '',
+      timeline: proj.timeline || '',
+      team_size: proj.team_size || '',
       score: Math.round(pseudoScore),
       badge: pseudoScore >= 85 ? 'Strong' : pseudoScore >= 70 ? 'Good' : 'Needs work',
       border: pseudoScore >= 85 ? '#10b981' : pseudoScore >= 70 ? '#6366f1' : '#f97316',
-      description: proj.details || proj.description || 'Comprehensive UI/UX design case study exploring user research, journey mapping, and interactive prototypes.',
+      description: proj.details || proj.description || 'Project extracted from portfolio content.',
       challenges: proj.challenges || '',
       outcomes: proj.outcomes || '',
-      tools: Array.isArray(proj.technologies) ? proj.technologies : (Array.isArray(proj.tools) ? proj.tools : ['Figma', 'Framer', 'Prototyping']),
+      tools: Array.isArray(proj.technologies) ? proj.technologies : (Array.isArray(proj.tools) ? proj.tools : []),
       images: Array.isArray(proj.images) ? proj.images : []
     };
   }) || [];
 
-  const artifactsFound = reportData?.design_artifacts?.artifacts_found || ['Wireframes', 'Interactive Prototypes', 'Design Systems', 'User Flows', 'Hi-Fi Mockups'];
-  const targetRoles = reportData?.target_roles || ['Senior Product Designer', 'UI/UX Designer', 'Design Systems Lead'];
-  const industries = reportData?.industries || ['FinTech & Banking', 'SaaS & Web Platforms', 'E-Commerce & Retail'];
-  const strengths = reportData?.strengths || ['Visual Craft & Polish', 'Design Systems & Scalability', 'User Research & Empathy', 'Interactive Prototyping'];
+  const artifactsFound = reportData?.design_artifacts?.artifacts_found || [];
+  const targetRoles = reportData?.target_roles || [];
+  const industries = reportData?.industries || [];
+  const strengths = reportData?.strengths || [];
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAF9F7] font-sans text-navy">
@@ -238,7 +235,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
           <div>
             <h1 className="text-[22px] sm:text-[26px] font-bold text-navy font-serif">Portfolio Intelligence</h1>
             <p className="mt-1 text-[13.5px] sm:text-[14px] text-navy/60">
-              Deep multi-project design intelligence synthesized from connected candidate showcases ({caseStudies.length} case studies extracted).
+              Deep analysis synthesized from connected candidate sources ({caseStudies.length} {caseStudies.length === 1 ? 'project' : 'projects'} extracted).
             </p>
           </div>
           <div className="flex items-center gap-2.5">
@@ -247,7 +244,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
               onClick={onAddSource}
             >
               <Plus className="w-4 h-4" />
-              Add Design Source
+              Add Source
             </button>
             <button
               className="flex items-center gap-2 rounded-xl border border-chalk-200 bg-white px-4 sm:px-5 py-2 sm:py-2.5 text-[13.5px] sm:text-[14px] font-semibold text-navy shadow-sm hover:bg-chalk-50 transition-colors shrink-0 cursor-pointer"
@@ -258,27 +255,6 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
             </button>
           </div>
         </div>
-
-        {/* Upgrade / Connect more design sources banner */}
-        {projectsCount <= 1 && (
-          <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-purple-50 to-white p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <Sparkles className="w-5 h-5 text-amber-300" />
-              </div>
-              <div>
-                <h3 className="text-[15.5px] font-bold text-navy">Connect Behance, Dribbble, or Figma</h3>
-                <p className="text-[13px] text-navy/65">Auto-import and extract deep UI/UX case studies, design system tokens, wireframes, and usability deliverables.</p>
-              </div>
-            </div>
-            <button
-              onClick={onAddSource}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-[13.5px] font-bold text-white shadow-md hover:bg-indigo-700 transition-all shrink-0 cursor-pointer hover:shadow-indigo-200"
-            >
-              <Plus className="w-4 h-4" /> Connect Design Showcase
-            </button>
-          </div>
-        )}
 
         {/* Candidate Profile Header Card */}
         {reportData?.full_name && (
@@ -293,9 +269,11 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
                     </span>
                   )}
                 </div>
-                <p className="text-[14px] font-medium text-indigo-600 mt-0.5">
-                  {reportData?.headline || 'Senior Product & UI/UX Designer'}
-                </p>
+                {reportData?.headline && (
+                  <p className="text-[14px] font-medium text-indigo-600 mt-0.5">
+                    {reportData.headline}
+                  </p>
+                )}
               </div>
 
               {/* Target Roles */}
@@ -345,12 +323,12 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
                 <span className="text-[16px] sm:text-[18px] font-medium text-white/40">/ 100</span>
               </div>
               <p className="mt-1.5 sm:mt-2 text-[12.5px] sm:text-[13px] text-white/70 font-medium">
-                {reportData?.headline || reportData?.target_roles?.[0] || 'Senior Product & UI/UX Designer'}
+                {reportData?.headline || reportData?.target_roles?.[0] || 'Candidate Intelligence'}
               </p>
             </div>
 
             <div className="w-full flex-1 grid grid-cols-2 sm:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-3 sm:gap-y-4 pt-1 border-t md:border-t-0 border-white/10 pt-4 md:pt-0">
-              {metrics.slice(0, 6).map((m: any) => (
+              {realMetrics.slice(0, 6).map((m: any) => (
                 <div key={m.label} className="min-w-0">
                   <div className="mb-1 flex items-center justify-between gap-1">
                     <span className="text-[11.5px] sm:text-[12.5px] text-white/60 capitalize truncate">{m.label}</span>
@@ -379,7 +357,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
               {(reportData?.skills?.design_tools?.length > 0 || (reportData?.tools && reportData.tools.length > 0)) && (
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
-                    Design Tools & Prototyping Software
+                    Tools & Technologies
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {Array.from(new Set([...(reportData?.skills?.design_tools || []), ...(reportData?.tools || [])])).map((t: any) => (
@@ -394,7 +372,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
               {reportData?.skills?.methodologies_and_processes?.length > 0 && (
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
-                    Design Methodologies & UX Research
+                    Methodologies & Processes
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {reportData.skills.methodologies_and_processes.map((m: string) => (
@@ -409,7 +387,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
               {reportData?.skills?.soft_skills?.length > 0 && (
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-navy/40 block mb-1.5">
-                    Design Leadership & Collaboration
+                    Soft Skills & Leadership
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {reportData.skills.soft_skills.map((s: string) => (
@@ -429,7 +407,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
           <div className="rounded-2xl border border-chalk-200 bg-white p-5 sm:p-6 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]">
             <h2 className="mb-3 text-[16.5px] sm:text-[18px] font-bold text-navy flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              Verified Design Artifacts
+              Verified Artifacts
             </h2>
             <div className="flex flex-wrap gap-2">
               {artifactsFound.map((art: string) => (
@@ -447,9 +425,9 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
           <div className="mb-4 sm:mb-6 flex items-center justify-between">
             <h2 className="text-[16.5px] sm:text-[18px] font-bold text-navy flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-indigo-600" />
-              UI/UX Case Study Analysis ({caseStudies.length})
+              Project Analysis ({caseStudies.length})
             </h2>
-            <span className="text-[12px] text-navy/50 font-medium">Deep AI Design Evaluation</span>
+            <span className="text-[12px] text-navy/50 font-medium">Deep AI Extraction</span>
           </div>
 
           <div className="divide-y divide-chalk-100">
@@ -480,14 +458,16 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
                   </div>
 
                   {/* Project Details / Scope */}
-                  <p className="text-[13.5px] sm:text-[14px] leading-relaxed text-navy/70">
-                    {cs.description}
-                  </p>
+                  {cs.description && (
+                    <p className="text-[13.5px] sm:text-[14px] leading-relaxed text-navy/70">
+                      {cs.description}
+                    </p>
+                  )}
 
                   {/* Challenges Section */}
                   {cs.challenges && (
                     <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 text-[13px] text-slate-800">
-                      <span className="font-semibold text-slate-900 block mb-0.5">Design Challenge & Friction Solved:</span>
+                      <span className="font-semibold text-slate-900 block mb-0.5">Key Challenge & Solution:</span>
                       <p className="leading-relaxed text-slate-700">{cs.challenges}</p>
                     </div>
                   )}
@@ -496,7 +476,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
                   {cs.outcomes && (
                     <div className="rounded-xl bg-emerald-50/80 border border-emerald-200/70 p-3.5 text-[13px] text-emerald-900">
                       <span className="font-semibold text-emerald-950 block mb-0.5 flex items-center gap-1.5">
-                        <Rocket className="w-3.5 h-3.5 text-emerald-600" /> Usability Results & Deliverables:
+                        <Rocket className="w-3.5 h-3.5 text-emerald-600" /> Key Impact & Deliverables:
                       </span>
                       <p className="leading-relaxed text-emerald-800">{cs.outcomes}</p>
                     </div>
@@ -505,7 +485,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
                   {/* Project Technologies */}
                   {cs.tools && cs.tools.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-[11px] font-bold text-navy/40 uppercase tracking-wider mr-1">Design Tools:</span>
+                      <span className="text-[11px] font-bold text-navy/40 uppercase tracking-wider mr-1">Tools & Stack:</span>
                       {cs.tools.map((t: string) => (
                         <span key={t} className="rounded bg-chalk-100 border border-chalk-200/60 px-2 py-0.5 text-[11.5px] font-medium text-navy/75">
                           {t}
@@ -516,7 +496,7 @@ function PortfolioReport({ reportData, onAddSource }: PortfolioReportProps) {
                 </div>
               </div>
             )) : (
-              <p className="py-4 text-[13.5px] text-navy/50">No case studies extracted yet.</p>
+              <p className="py-4 text-[13.5px] text-navy/50">No projects extracted from this portfolio.</p>
             )}
           </div>
         </div>
@@ -573,10 +553,11 @@ export function PortfolioManager() {
         } else if (res.data) {
           handleAnalysisDone(res.data);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('PDF analysis error:', err);
         setIsAnalyzing(false);
-        alert('Failed to analyze PDF. Please check backend connection.');
+        const msg = err.response?.data?.detail || 'Failed to analyze PDF. Please check backend connection.';
+        alert(msg);
       }
     } else {
       setIsAnalyzing(true);
@@ -588,7 +569,9 @@ export function PortfolioManager() {
       setIsAnalyzing(true);
       try {
         let finalUrl = urlInput.trim();
-        if (type === 'behance' && !finalUrl.includes('behance.net') && !finalUrl.startsWith('http')) {
+        if (type === 'linkedin' && !finalUrl.includes('linkedin.com') && !finalUrl.startsWith('http')) {
+          finalUrl = `https://linkedin.com/in/${finalUrl.replace(/^@/, '')}`;
+        } else if (type === 'behance' && !finalUrl.includes('behance.net') && !finalUrl.startsWith('http')) {
           finalUrl = `https://behance.net/${finalUrl.replace(/^@/, '')}`;
         } else if (type === 'dribbble' && !finalUrl.includes('dribbble.com') && !finalUrl.startsWith('http')) {
           finalUrl = `https://dribbble.com/${finalUrl.replace(/^@/, '')}`;
@@ -604,10 +587,11 @@ export function PortfolioManager() {
         } else if (res.data) {
           handleAnalysisDone(res.data);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
         setIsAnalyzing(false);
-        alert('Failed to start design portfolio analysis.');
+        const msg = err.response?.data?.detail || 'Failed to start portfolio analysis. Please verify the URL.';
+        alert(msg);
       }
     } else {
       setShowInputFor(type);
@@ -626,7 +610,7 @@ export function PortfolioManager() {
       applyPortfolioReport(data);
       pushNotification({
         type: 'profile_suggestion',
-        message: 'Design portfolio analysis complete! Your profile has been updated with verified UI/UX case studies and design skills.',
+        message: 'Portfolio analysis complete! Your profile has been updated with extracted skills and case studies.',
         linkTo: '/profile',
       });
     }
@@ -654,14 +638,43 @@ export function PortfolioManager() {
       <div className="p-8 pb-20 max-w-6xl mx-auto w-full animate-slide-up">
         <div className="mb-8">
           <h2 className="font-serif text-[26px] font-bold text-navy mb-2">
-            Design Portfolio Management
+            Portfolio Management
           </h2>
           <p className="text-[15px] leading-relaxed text-navy/65 max-w-3xl">
-            Connect your design showcases (Behance, Dribbble, Figma, personal portfolio, or PDF deck) to generate a comprehensive UI/UX intelligence report. The analysis automatically extracts your case studies, interactive mockups, design tokens, and user research methodologies.
+            Connect your candidate sources (LinkedIn, Behance, Dribbble, Figma, personal portfolio, or PDF deck) to generate a comprehensive intelligence report. The analysis extracts your real skills, tools, and project case studies.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+          {/* LinkedIn */}
+          <div className="portfolio-source-card h-auto bg-white rounded-2xl p-5 border border-chalk-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="portfolio-source-icon mb-3 flex items-center justify-center rounded-xl bg-[#0a66c2] text-white p-2 h-11 w-11">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.25c-.9 0-1.63.73-1.63 1.63s.73 1.63 1.63 1.63 1.63-.73 1.63-1.63-.73-1.63-1.63-1.63Z" />
+                </svg>
+              </div>
+              <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">LinkedIn</span>
+              <p className="text-[12.5px] text-navy/55 mb-4">Profile history, roles & portfolio footprints</p>
+            </div>
+            {showInputFor === 'linkedin' ? (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <input 
+                  type="url" 
+                  className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg focus:outline-none focus:border-[#0a66c2]" 
+                  placeholder="https://linkedin.com/in/username" 
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                />
+                <button className="w-full bg-[#0a66c2] text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm" onClick={() => handleConnectUrl('linkedin')}>Analyze Profile</button>
+              </div>
+            ) : (
+              <button className="w-full py-2 px-3 rounded-lg border border-[#0a66c2]/30 text-[#0a66c2] font-semibold text-sm hover:bg-[#0a66c2] hover:text-white transition-all shadow-sm" onClick={() => handleConnectUrl('linkedin')}>
+                Connect LinkedIn
+              </button>
+            )}
+          </div>
+
           {/* Behance */}
           <div className="portfolio-source-card h-auto bg-white rounded-2xl p-5 border border-chalk-200 shadow-sm flex flex-col justify-between">
             <div>
@@ -669,7 +682,7 @@ export function PortfolioManager() {
                 Be
               </div>
               <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">Behance</span>
-              <p className="text-[12.5px] text-navy/55 mb-4">Gallery projects, visual craft, & UX case studies</p>
+              <p className="text-[12.5px] text-navy/55 mb-4">Gallery projects, visual craft & case studies</p>
             </div>
             {showInputFor === 'behance' ? (
               <div className="flex flex-col gap-2 w-full mt-2">
@@ -696,7 +709,7 @@ export function PortfolioManager() {
                 Dr
               </div>
               <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">Dribbble</span>
-              <p className="text-[12.5px] text-navy/55 mb-4">UI shots, animations, & visual design work</p>
+              <p className="text-[12.5px] text-navy/55 mb-4">UI shots, animations & visual design work</p>
             </div>
             {showInputFor === 'dribbble' ? (
               <div className="flex flex-col gap-2 w-full mt-2">
@@ -729,7 +742,7 @@ export function PortfolioManager() {
                 </svg>
               </div>
               <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">Figma</span>
-              <p className="text-[12.5px] text-navy/55 mb-4">Design systems, token libraries, & prototypes</p>
+              <p className="text-[12.5px] text-navy/55 mb-4">Design systems, token libraries & prototypes</p>
             </div>
             {showInputFor === 'figma' ? (
               <div className="flex flex-col gap-2 w-full mt-2">
@@ -749,7 +762,7 @@ export function PortfolioManager() {
             )}
           </div>
 
-          {/* Personal Design Site */}
+          {/* Personal Portfolio */}
           <div className="portfolio-source-card h-auto bg-white rounded-2xl p-5 border border-chalk-200 shadow-sm flex flex-col justify-between">
             <div>
               <div className="portfolio-source-icon mb-3 flex items-center justify-center rounded-xl bg-[#6366f1] text-white p-2 h-11 w-11">
@@ -767,7 +780,7 @@ export function PortfolioManager() {
                 <input 
                   type="url" 
                   className="w-full px-3 py-2 text-sm border border-indigo-200 rounded-lg focus:outline-none focus:border-[#6366f1]" 
-                  placeholder="https://yourportfolio.design" 
+                  placeholder="https://yourportfolio.com" 
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                 />
@@ -787,7 +800,7 @@ export function PortfolioManager() {
                 PDF
               </div>
               <span className="portfolio-source-label text-[16px] font-bold text-navy block mb-1">PDF Portfolio</span>
-              <p className="text-[12.5px] text-navy/55 mb-4">UX case study decks & presentation portfolios</p>
+              <p className="text-[12.5px] text-navy/55 mb-4">Case study decks & presentation portfolios</p>
             </div>
             {pdfUploaded ? (
               <span className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-100 text-emerald-800 text-sm font-semibold">
@@ -816,7 +829,7 @@ export function PortfolioManager() {
           <div className="mt-8 animate-slide-up flex justify-center">
             <button className="flex items-center gap-2 rounded-xl bg-indigo-600 px-8 py-3.5 text-[15px] font-bold text-white shadow-lg hover:bg-indigo-700 transition-all hover:shadow-indigo-200" onClick={handleGenerateReport}>
               <Sparkles className="w-5 h-5 text-amber-300" />
-              Generate Design Intelligence Report
+              Generate Intelligence Report
             </button>
           </div>
         )}

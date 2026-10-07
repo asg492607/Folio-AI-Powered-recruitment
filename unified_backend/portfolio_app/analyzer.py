@@ -2,6 +2,7 @@ import os
 import re
 import json
 import uuid
+import asyncio
 import datetime
 import httpx
 from bs4 import BeautifulSoup
@@ -78,7 +79,7 @@ def extract_images_from_pdf(file_path: str, job_id: str) -> list:
 
 # 2. Web Scraping for LinkedIn, Behance & Portfolios (with Anti-Scraping Bypass & Discovery)
 async def scrape_linkedin_content(url: str) -> tuple:
-    """Dedicated resolver for LinkedIn profiles that bypasses authwalls (999/403) by discovering candidate design portfolios and public showcase data."""
+    """Dedicated resolver for LinkedIn profiles that bypasses authwalls (999/403) by discovering candidate portfolios and public search data."""
     import urllib.parse
     match = re.search(r'linkedin\.com/in/([^/?#&]+)', url)
     slug = match.group(1) if match else ''
@@ -95,21 +96,24 @@ async def scrape_linkedin_content(url: str) -> tuple:
     search_snippets = []
     
     async with httpx.AsyncClient(timeout=12.0, follow_redirects=True, headers=headers) as client:
-        # 1. Check personal portfolio and design domains
+        # 1. Check personal portfolio domains
         cleaned_slug = slug.replace('-', '').replace('_', '')
         potential_domains = [
             f"https://{cleaned_slug}.in",
             f"https://{cleaned_slug}.com",
-            f"https://{cleaned_slug}.design",
+            f"https://{cleaned_slug}.dev",
             f"https://{cleaned_slug}.me",
-            f"https://{cleaned_slug}.framer.website",
-            f"https://{cleaned_slug}.webflow.io",
+            f"https://{cleaned_slug}.vercel.app",
+            f"https://{cleaned_slug}.netlify.app",
             f"https://{slug}.in",
             f"https://{slug}.com",
-            f"https://{slug}.design",
+            f"https://{slug}.dev",
             f"https://{slug}.me",
-            f"https://{slug}.framer.website",
-            f"https://{slug}.webflow.io",
+            f"https://{slug}.vercel.app",
+            f"https://{slug}.netlify.app",
+            f"https://{cleaned_slug}.design",
+            f"https://{cleaned_slug}.framer.website",
+            f"https://{cleaned_slug}.webflow.io",
         ]
         
         for domain in potential_domains:
@@ -144,9 +148,9 @@ async def scrape_linkedin_content(url: str) -> tuple:
             except Exception:
                 continue
 
-        # 2. Query public search index for designer highlights & bio
+        # 2. Query public search index for career highlights & bio
         try:
-            query = f'"{clean_name}" linkedin "Product Designer" OR "UI/UX" OR "Visual Design" OR "Design Systems"'
+            query = f'"{clean_name}" linkedin OR developer OR designer OR engineer'
             r_search = await client.get(f"https://www.bing.com/search?q={urllib.parse.quote(query)}")
             if r_search.status_code == 200:
                 soup = BeautifulSoup(r_search.text, "html.parser")
@@ -177,7 +181,7 @@ async def scrape_linkedin_content(url: str) -> tuple:
     if discovered_content:
         context.append(f"\nProjects & Portfolio Details:\n{discovered_content[:18000]}")
     elif not search_snippets:
-        context.append(f"\nCandidate Career Profile:\nName: {clean_name}\nRole: Senior Product & UI/UX Designer\nExperience: End-to-end design thinking, design systems, and UI/UX case studies.")
+        context.append(f"\nCandidate Career Profile:\nName: {clean_name}\nNote: No public profile details could be retrieved for this LinkedIn URL.")
 
     return "\n".join(context), discovered_images, discovered_links
 
@@ -248,6 +252,11 @@ async def scrape_dribbble_content(url: str) -> tuple:
             except Exception:
                 continue
 
+        # 1b. Read the actual Dribbble page the user submitted (falls back to a reader proxy when blocked)
+        dribbble_page = await _fetch_page(client, url)
+        if dribbble_page["text"]:
+            discovered_images = (dribbble_page["images"] + discovered_images)[:12]
+
         # 2. Query public search for Dribbble design works & portfolio
         try:
             query = f'"{clean_name}" dribbble OR "UI/UX" OR "Product Designer" OR "Visual Design"'
@@ -270,8 +279,9 @@ async def scrape_dribbble_content(url: str) -> tuple:
         f"Dribbble Design Portfolio Intelligence",
         f"Designer Name: {clean_name}",
         f"Dribbble Profile / Shot URL: {url}",
-        f"Design Artifacts: Visual Craft, UI/UX Mockups, Design Systems, Typography, Interaction Flow",
     ]
+    if dribbble_page["text"]:
+        context.append(f"\nDribbble Page Content:\n{dribbble_page['text'][:12000]}")
     if discovered_site_url:
         context.append(f"Discovered Designer Website & Case Studies: {discovered_site_url}")
     if search_snippets:
@@ -279,117 +289,149 @@ async def scrape_dribbble_content(url: str) -> tuple:
         context.extend(search_snippets)
     if discovered_content:
         context.append(f"\nProjects & Portfolio Details:\n{discovered_content[:18000]}")
-    elif not search_snippets:
-        context.append(f"\nCandidate Design Profile:\nName: {clean_name}\nRole: UI/UX & Visual Designer\nSpecialization: Product interfaces, mobile app concepts, design systems, visual craft.")
+    elif not search_snippets and not dribbble_page["text"]:
+        context.append(f"\nCandidate Design Profile:\nName: {clean_name}\nNote: No public profile details could be retrieved for this Dribbble URL.")
 
     return "\n".join(context), discovered_images, discovered_links
+
+BROWSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+_IMAGE_NOISE = ["pixel", "analytics", "icon", "svg", "avatar", "logo", "sprite", "tracker", "blank", "spacer"]
+_NAV_NOISE = {
+    "sign in", "sign up", "explore", "jobs", "resources", "hire", "share work", "more behance", "careers at behance",
+    "download on the app store", "get it on google play", "log in", "login", "follow", "following", "message",
+    "appreciate", "save", "share", "report", "cookie preferences", "privacy", "terms of use", "search", "adobe",
+}
+
+
+def _clean_markdown(md: str) -> str:
+    """Turns reader-proxy markdown into plain text (drops images, link targets and nav chrome)."""
+    md = re.sub(r'!\[[^\]]*\]\([^)]*\)', '', md)
+    md = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', md)
+    out, prev = [], ""
+    for raw in md.splitlines():
+        line = re.sub(r'^[\*\-\s#>]+', '', raw).strip()
+        if len(line) < 3 or line.lower() in _NAV_NOISE:
+            continue
+        if line.startswith(("URL Source:", "Markdown Content:", "Title:")):
+            continue
+        if line == prev:
+            continue
+        out.append(line)
+        prev = line
+    return "\n".join(out)
+
+
+async def _fetch_page(client: httpx.AsyncClient, url: str, use_reader: bool = True) -> dict:
+    """
+    Loads a page and returns {title, text, images, links, via}.
+    Tries a direct request first. Sites such as Behance/Dribbble answer cloud and bot traffic with 403/429,
+    so when that happens the page is loaded through a public reader proxy that renders the real page content.
+    """
+    import urllib.parse
+    result = {"title": "", "text": "", "images": [], "links": [], "via": ""}
+
+    try:
+        r = await client.get(url)
+        if r.status_code == 200 and len(r.text) > 1500:
+            soup = BeautifulSoup(r.text, "html.parser")
+            og = soup.find("meta", attrs={"property": "og:title"})
+            title = (og.get("content", "").strip() if og else "") or (soup.title.string.strip() if soup.title and soup.title.string else "")
+            images = []
+            for img in soup.find_all("img"):
+                src = img.get("src") or img.get("data-src")
+                if src and not any(x in src.lower() for x in _IMAGE_NOISE):
+                    full = urllib.parse.urljoin(url, src)
+                    if full.startswith("http") and full not in images:
+                        images.append(full)
+            links = [urllib.parse.urljoin(url, a["href"]) for a in soup.find_all("a", href=True)]
+            for noise in soup(["script", "style", "nav", "header", "footer", "noscript"]):
+                noise.extract()
+            lines = (line.strip() for line in soup.get_text().splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = "\n".join(chunk for chunk in chunks if chunk)
+            if len(text) > 300:
+                result.update(title=title, text=text, images=images[:12], links=links, via="direct")
+                return result
+    except Exception:
+        pass
+
+    if use_reader:
+        try:
+            rr = await client.get(f"https://r.jina.ai/{url}", timeout=40.0, headers={"Accept": "text/plain"})
+            if rr.status_code == 200 and len(rr.text) > 300:
+                md = rr.text
+                tm = re.search(r'^Title:\s*(.+)$', md, re.MULTILINE)
+                images = []
+                for img_url in re.findall(r'!\[[^\]]*\]\((https?://[^)\s]+)\)', md):
+                    if not any(x in img_url.lower() for x in _IMAGE_NOISE) and img_url not in images:
+                        images.append(img_url)
+                links = re.findall(r'\]\((https?://[^)\s]+)\)', md)
+                text = _clean_markdown(md)
+                if len(text) > 100:
+                    result.update(
+                        title=(tm.group(1).strip() if tm else ""),
+                        text=text, images=images[:12], links=links, via="reader"
+                    )
+        except Exception:
+            pass
+    return result
+
 
 async def scrape_behance_content(url: str) -> tuple:
-    """Dedicated resolver for Behance design portfolios and project galleries."""
-    import urllib.parse
-    match_gallery = re.search(r'behance\.net/gallery/(\d+)/?([^/?#&]*)', url)
-    match_user = re.search(r'behance\.net/([^/?#&]+)', url)
-    
-    clean_title = ""
-    slug = ""
-    is_gallery = bool(match_gallery)
-    
-    if match_gallery:
-        slug = match_gallery.group(2) or match_gallery.group(1)
-        clean_title = " ".join(word.capitalize() for word in re.sub(r'[^a-zA-Z0-9]', ' ', slug).split())
-    elif match_user:
-        slug = match_user.group(1)
-        if slug.lower() not in ["gallery", "search", "live", "joblist", "hire", "pro"]:
-            clean_title = " ".join(word.capitalize() for word in re.sub(r'[^a-zA-Z0-9]', ' ', slug).split())
-        else:
-            clean_title = "Product Designer"
-    else:
-        clean_title = "Behance Design Portfolio"
+    """
+    Behance resolver. Reads the real profile / project page (and the projects listed on a profile)
+    and returns only what is actually on the page. Nothing is invented here.
+    """
+    target = url.strip()
+    if not target.startswith(("http://", "https://")):
+        target = f"https://{target}"
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9"
-    }
+    gallery_match = re.search(r'behance\.net/gallery/(\d+)', target)
+    own_id = gallery_match.group(1) if gallery_match else ""
+    is_gallery = bool(gallery_match)
 
-    discovered_content = ""
-    discovered_images = []
-    discovered_links = []
-    search_snippets = []
-    discovered_projects = []
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True, headers=BROWSER_HEADERS) as client:
+        page = await _fetch_page(client, target)
+        if not page["text"]:
+            return "", [], []
 
-    async with httpx.AsyncClient(timeout=15.0, follow_redirects=True, headers=headers) as client:
-        # 1. Attempt direct Behance page scrape
-        try:
-            r = await client.get(url)
-            if r.status_code == 200:
-                soup = BeautifulSoup(r.text, "html.parser")
-                for img in soup.find_all("img"):
-                    src = img.get("src") or img.get("data-src")
-                    if src and not any(x in src.lower() for x in ["pixel", "analytics", "icon", "svg", "avatar"]):
-                        full_img = urllib.parse.urljoin(url, src)
-                        if full_img.startswith("http") and full_img not in discovered_images:
-                            discovered_images.append(full_img)
-                            if len(discovered_images) >= 12:
-                                break
-                
-                for a in soup.find_all("a", href=True):
-                    href = a["href"]
-                    if "/gallery/" in href or "/project/" in href:
-                        full_l = urllib.parse.urljoin(url, href)
-                        if full_l not in discovered_links:
-                            discovered_links.append(full_l)
+        project_links = []
+        for link in page["links"]:
+            m = re.match(r'(https?://www\.behance\.net/gallery/(\d+)/[^\s?#)\]"]+)', link)
+            if m and m.group(2) != own_id and m.group(1) not in project_links:
+                project_links.append(m.group(1))
 
-                for noise in soup(["script", "style", "nav", "header", "footer", "noscript"]):
-                    noise.extract()
-                lines = (line.strip() for line in soup.get_text().splitlines())
-                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-                discovered_content = "\n".join(chunk for chunk in chunks if chunk)
-        except Exception:
-            pass
+        sub_pages = []
+        if not is_gallery and project_links:
+            fetched = await asyncio.gather(*[_fetch_page(client, p) for p in project_links[:6]])
+            sub_pages = [(link, sp) for link, sp in zip(project_links[:6], fetched) if sp["text"]]
 
-        # 2. Query public search index for Behance design case studies and projects
-        try:
-            if is_gallery:
-                query = f'site:behance.net "{clean_title}" OR behance "{clean_title}" "UI/UX" OR "Case Study"'
-            else:
-                query = f'site:behance.net/{slug} OR "{clean_title}" behance portfolio "UI/UX" OR "Product Design"'
-            
-            r_search = await client.get(f"https://www.bing.com/search?q={urllib.parse.quote(query)}")
-            if r_search.status_code == 200:
-                soup = BeautifulSoup(r_search.text, "html.parser")
-                for item in soup.select(".b_algo"):
-                    title_elem = item.select_one("h2")
-                    snippet_elem = item.select_one(".b_caption p")
-                    t_str = title_elem.get_text(strip=True) if title_elem else ""
-                    s_str = snippet_elem.get_text(strip=True) if snippet_elem else ""
-                    if t_str or s_str:
-                        search_snippets.append(f"- {t_str}: {s_str}")
-                        clean_proj = t_str.split('|')[0].split('::')[0].split('on Behance')[0].split('-')[0].strip()
-                        if len(clean_proj) > 3 and clean_proj not in discovered_projects:
-                            discovered_projects.append(clean_proj)
-                    if len(search_snippets) >= 8:
-                        break
-        except Exception:
-            pass
-
+    title = page["title"].replace("on Behance", "").strip(" |-")
     context = [
-        f"Behance Design Portfolio Intelligence",
-        f"Design Showcase: {clean_title}",
-        f"Behance URL: {url}",
-        f"Design Specialization: Product Design, UI/UX Architecture, Mobile & Web App Interfaces, Design Systems, Visual Identity",
-        f"Primary Design Tools: Figma, Sketch, Adobe XD, Photoshop, Illustrator, After Effects, Procreate, Blender, Spline, Principle, Framer",
-        f"Design Artifacts Present: Wireframes, User Flows, Hi-fi Mockups, Interactive Prototypes, Design Systems, Information Architecture"
+        "Behance Portfolio Content",
+        f"Source URL: {target}",
+        f"Page Title: {title}",
     ]
-    if search_snippets:
-        context.append("\nBehance Case Studies & Project Details:")
-        context.extend(search_snippets)
-    if discovered_content and len(discovered_content) > 300:
-        context.append(f"\nExtracted Case Study Details:\n{discovered_content[:15000]}")
-    elif not search_snippets:
-        context.append(f"\nDesigner Case Study Profile:\nProject Name: {clean_title}\nRole: Lead Product & UI/UX Designer\nDesign Scope: End-to-end design thinking, user research, wireframing, high-fidelity mockups, and responsive component design systems.")
+    if not is_gallery and title:
+        context.append(f"Designer Name: {title}")
+    elif is_gallery and " - " in title:
+        context.append(f"Designer Name: {title.rsplit(' - ', 1)[-1].strip()}")
 
-    return "\n".join(context), discovered_images, discovered_links
+    context.append(f"\nPage Content:\n{page['text'][:12000]}")
+    images = list(page["images"])
+    for link, sp in sub_pages:
+        context.append(f"\n--- Behance Project: {sp['title'] or link} ({link}) ---\n{sp['text'][:3000]}")
+        for img in sp["images"][:3]:
+            if img not in images:
+                images.append(img)
+
+    return "\n".join(context), images[:15], project_links[:15]
+
 
 async def scrape_url_content(url: str) -> tuple:
     clean_url = url.strip()
@@ -510,9 +552,18 @@ async def scrape_url_content(url: str) -> tuple:
 
                 return "\n\n".join(context_blocks), images, links
             else:
-                return f"Design Portfolio URL: {target_url}\nStatus: {response.status_code}\nFocus: UI/UX & Product Design.", [], []
+                fallback = await _fetch_page(client, target_url)
+                if fallback["text"]:
+                    blocks = [
+                        f"Source Design Portfolio URL: {target_url}",
+                        f"Title: {fallback['title']}",
+                        f"Main Portfolio Case Study Content:\n{fallback['text'][:14000]}",
+                    ]
+                    return "\n\n".join(blocks), fallback["images"], fallback["links"][:15]
+                return "", [], []
     except Exception as e:
-        return f"Design Portfolio URL: {target_url}\nDetail: {str(e)}\nFocus: UI/UX & Product Design.", [], []
+        print(f"[scrape_url_content] Error scraping {target_url}: {e}")
+        return "", [], []
 
 
 # 3. Figma API Parser (Enhanced to extract Structural Design Artifact Signals)
@@ -619,6 +670,7 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
     4. Accurately extract the candidate's full name, role title, and professional background.
     5. Extract all explicit design tools, frameworks, programming languages, and databases mentioned.
     6. Look for inline markers like `[IMAGE_URL: <url> CAPTION: <text>]` inside the text stream. Assign matching image URLs to corresponding projects.
+    7. NEVER invent facts. Only use what is written in the portfolio text. If something (client, timeline, outcomes, years of experience) is not stated, use null or an empty list instead of guessing. The candidate name must be the person who owns the portfolio in the text.
 
     Source Context: {filename}
 
@@ -708,6 +760,7 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
                         result["report_id"] = str(uuid.uuid4())
                     if "generated_at" not in result or not result["generated_at"]:
                         result["generated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+                    result["analysis_engine"] = f"gemini:{m}"
                     print(f"[Gemini API] Successfully analyzed portfolio using model: {m}")
                     return sync_project_skills_to_profile(result)
                 except Exception as e:
@@ -741,6 +794,7 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
                         result["report_id"] = str(uuid.uuid4())
                     if "generated_at" not in result or not result["generated_at"]:
                         result["generated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+                    result["analysis_engine"] = f"groq:{gm}"
                     print(f"[Groq API] Successfully analyzed portfolio using model: {gm}")
                     return sync_project_skills_to_profile(result)
                 except Exception as e:
@@ -750,6 +804,7 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
 
     print("[Portfolio Analyzer] AI APIs unavailable. Falling back to local heuristic extraction engine.")
     fallback_result = run_heuristic_analysis(text, filename, images=images)
+    fallback_result["analysis_engine"] = "heuristic"
     return sync_project_skills_to_profile(fallback_result)
 
 
