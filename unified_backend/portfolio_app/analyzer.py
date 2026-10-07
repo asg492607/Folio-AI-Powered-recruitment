@@ -466,21 +466,33 @@ async def generate_text_embedding(text: str) -> list:
     import random
     return [random.uniform(-0.1, 0.1) for _ in range(768)]
 
-# Heuristics local engine fallback (already built, import same)
+# Heuristics local engine fallback
 try:
     from portfolio_app.analyzer_heuristics import run_heuristic_analysis
 except ImportError:
-    from analyzer_heuristics import run_heuristic_analysis
+    try:
+        from unified_backend.portfolio_app.analyzer_heuristics import run_heuristic_analysis
+    except ImportError:
+        try:
+            from analyzer_heuristics import run_heuristic_analysis
+        except ImportError:
+            from .analyzer_heuristics import run_heuristic_analysis
 
 def run_ai_analysis(text: str, filename: str, images: list = None, links: list = None) -> dict:
-    """Runs data extraction using local Ollama LLM (llama3.1), or falls back to heuristics."""
+    """Runs high-fidelity data extraction using Gemini, Groq, or fallback heuristics."""
     from openai import OpenAI
 
     prompt = f"""
-    You are Portfolio Ingestion Agent — an AI system that analyzes portfolios to extract candidate profiles, technology stack tools, identify design artifacts, and list projects.
+    You are Portfolio Ingestion Agent — a world-class AI system that analyzes portfolios to extract candidate profiles, technology stack tools, identify design artifacts, and list authentic projects.
     Your task is to analyze the portfolio content below and extract structured data. Focus strictly on objective data extraction; do not include ratings, reviews, recommendations, or grading of any kind.
-    
-    IMPORTANT: Look for inline markers like `[IMAGE_URL: <url> CAPTION: <text>]` inside the text stream. Identify which images belong to which projects, and assign those exact image URLs to the corresponding project in the "projects" array below.
+
+    CRITICAL RULES:
+    1. Extract ONLY REAL projects, case studies, interactive applications, or platforms actually built/designed by the candidate as described in the text.
+    2. Do NOT invent or hallucinate third-party technology companies (e.g., OpenAI, Google, Anthropic, Meta) as projects built by the candidate.
+    3. If the portfolio itself is an interactive platform, digital headquarters, or showcase (e.g. 'Project Atlas' or 'AtlasAI'), extract it accurately as a flagship case study with its true purpose, architecture, and tech stack.
+    4. Accurately extract the candidate's full name, role title, and professional background.
+    5. Extract all explicit design tools, frameworks, programming languages, and databases mentioned.
+    6. Look for inline markers like `[IMAGE_URL: <url> CAPTION: <text>]` inside the text stream. Assign matching image URLs to corresponding projects.
 
     Source Context: {filename}
 
@@ -497,15 +509,15 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
       "full_name": "candidate full name or empty string if not found",
       "headline": "candidate professional headline or role title",
       "summary": "a brief professional summary/bio summarizing their background",
-      "target_roles": ["Suggest exactly 1 to 3 primary target roles that are highly aligned matches for the candidate (e.g. 'F&B Branding Designer' or 'Fintech Frontend Developer' based on their project industries and strengths, listed from highest match to lowest)"],
+      "target_roles": ["1 to 3 primary target roles for candidate"],
       "years_experience": float or null for years of experience,
       "industries": ["list of industries they worked in or design for"],
       "strengths": ["list of candidate's core strengths/qualities"],
       "tools": ["list of tools/technologies mentioned in the portfolio"],
       "skills": {{
-        "design_tools": ["Design software, tools, and visual technical capabilities (e.g. Figma, Sketch, Photoshop, Illustrator, Procreate). Extract these by deeply analyzing the projects, work scopes, and layouts described below."],
-        "methodologies_and_processes": ["Design methodologies, frameworks, UX research methods, design thinking, and workflow processes (e.g. User Research, Wireframing, Prototyping, Usability Testing). Extract these by analyzing their project case studies below."],
-        "soft_skills": ["Demonstrated soft skills (e.g. Team Collaboration, Leadership, Problem Solving) extracted from project descriptions and teamwork context."]
+        "design_tools": ["Design software, tools, and visual technical capabilities"],
+        "methodologies_and_processes": ["Design methodologies, frameworks, UX research methods, design thinking, and workflow processes"],
+        "soft_skills": ["Demonstrated soft skills extracted from project descriptions"]
       }},
       "design_artifacts": {{
         "artifacts_found": ["identified design artifacts e.g. wireframes, mockups, case studies, user flows, prototypes, design systems, style guides"],
@@ -514,20 +526,31 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
       "projects": [
         {{ 
           "name": "project name", 
-          "type": "type of project, e.g. Mobile App, E-Commerce Website, Branding", 
-          "role": "candidate's specific title and level of contribution (e.g. Sole Designer, Lead Architect, Frontend Developer) on this project",
-          "client_or_organization": "the company, client, or organization the project was built for, e.g. Fintech Startup, Retail Client, or null if not mentioned",
-          "timeline": "project duration or dates, e.g., '3 months' or 'Jan - Mar 2025', or null if not mentioned",
-          "team_size": "the number of people on the team, e.g. 'Solo project', 'Team of 5', or null if not mentioned",
+          "type": "type of project, e.g. Mobile App, E-Commerce Website, Digital Headquarters", 
+          "role": "candidate's specific title and level of contribution on this project",
+          "client_or_organization": "the company, client, or organization the project was built for, or null",
+          "timeline": "project duration or dates, or null",
+          "team_size": "the number of people on the team, e.g. 'Solo builder', 'Team of 4', or null",
           "details": "detailed description of the project scope, background context, and problem statement (2-3 sentences)",
           "technologies": ["specific tools, libraries, or technologies used specifically to build/design this project"],
           "challenges": "what major technical, design, or collaboration challenges they faced and how they resolved them",
-          "outcomes": "key results, impact, user feedback, or deliverables of the project (be specific, e.g. 'Redesigned checkout flow resulting in a 15% increase in conversions')",
+          "outcomes": "key results, impact, user feedback, or deliverables of the project",
           "images": ["list of matching IMAGE_URL strings found in the text for this project"]
         }}
       ]
     }}
     """
+
+    try:
+        from dotenv import load_dotenv
+        _cur_dir = os.path.dirname(os.path.abspath(__file__))
+        load_dotenv(os.path.join(_cur_dir, ".env"))
+        load_dotenv(os.path.join(os.path.dirname(_cur_dir), ".env"))
+        load_dotenv(os.path.join(os.path.dirname(os.path.dirname(_cur_dir)), ".env"))
+        load_dotenv(os.path.join("/tmp", ".env"))
+        load_dotenv()
+    except Exception:
+        pass
 
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
     configured_model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")

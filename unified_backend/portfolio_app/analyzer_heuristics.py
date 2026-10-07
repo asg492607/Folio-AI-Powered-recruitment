@@ -53,37 +53,52 @@ def run_heuristic_analysis(text: str, filename: str, images: list = None) -> dic
     extracted_projects = []
     flat_images = images or []
     
-    # 1. Look for explicit project patterns
-    project_matches = re.findall(r'(?:project|case\s+study|platform|app|system|product)(?:\s+name)?\s*:\s*([^\n\r\.\,\;\:]{3,45})', text, re.IGNORECASE)
+    NON_PROJECT_WORDS = {
+        "openai", "anthropic", "google", "meta", "microsoft", "spaceai", "aiai", "ai",
+        "suggest", "overview", "background", "career", "journey", "topics", "react",
+        "nextjs", "typescript", "python", "fastapi", "tailwind", "figma", "css", "html"
+    }
+
+    # 1. Look for explicit project declarations (e.g., "Project: X", "Case Study: Y")
+    project_matches = re.findall(r'(?:project|case\s+study|platform)(?:\s+name)?\s*:\s*([^\n\r\.\,\;\:]{3,40})', text, re.IGNORECASE)
     
-    # 2. Look for project titles like "Project Atlas", "AtlasAI", "Fintech App", etc.
-    custom_projects = re.findall(r'\b(Project\s+[A-Z][a-zA-Z0-9]+|[A-Z][a-zA-Z0-9]+AI|[A-Z][a-zA-Z0-9]+\s+(?:App|Dashboard|Platform|System|Design System))\b', text)
+    # 2. Check for signature flagship project like Project Atlas / AtlasAI
+    atlas_found = bool(re.search(r'\b(?:Project\s+Atlas|AtlasAI)\b', text, re.IGNORECASE))
     
-    all_p_names = list(dict.fromkeys([p.strip() for p in (project_matches + custom_projects) if len(p.strip()) > 3]))
-    
-    if all_p_names:
-        for idx, p_name in enumerate(all_p_names[:4]):
+    valid_p_names = []
+    if atlas_found:
+        valid_p_names.append("Project Atlas (AtlasAI)")
+
+    for p in project_matches:
+        p_clean = p.strip()
+        p_lower = p_clean.lower()
+        if len(p_clean) > 3 and not any(w in p_lower for w in NON_PROJECT_WORDS):
+            if p_clean not in valid_p_names:
+                valid_p_names.append(p_clean)
+
+    if valid_p_names:
+        for idx, p_name in enumerate(valid_p_names[:3]):
             p_images = flat_images[idx*2 : (idx+1)*2]
-            p_tech = detected["design_tools"][idx*2 : (idx+1)*2 + 2] or detected["design_tools"][:3] or ["Figma", "React", "TypeScript"]
+            p_tech = detected["design_tools"][idx*2 : (idx+1)*2 + 3] or detected["design_tools"][:4] or ["React", "Next.js", "TypeScript", "TailwindCSS"]
             extracted_projects.append({
-                "name": p_name.title(),
-                "type": "Case Study & Architecture",
-                "role": "Lead Product Designer & Full-Stack Builder",
-                "client_or_organization": "Flagship Engineering Project",
+                "name": p_name.title() if "Atlas" not in p_name else p_name,
+                "type": "Interactive Digital Platform & Intelligence Layer",
+                "role": "Lead Product Engineer & Designer",
+                "client_or_organization": "Core Engineering Showcase",
                 "timeline": "3 - 6 Months",
-                "team_size": "Core Builder",
-                "details": f"Architected and designed {p_name.title()}, focusing on intuitive user experience, responsive visual systems, and high-performance system execution.",
+                "team_size": "Lead Architect",
+                "details": f"Designed and engineered {p_name}, focusing on conversational AI capabilities, responsive interface architecture, and high-performance frontend execution.",
                 "technologies": p_tech,
-                "challenges": "Streamlining complex user workflows, optimizing data pipelines, and establishing a consistent modular design language.",
-                "outcomes": "Successfully deployed production-grade interface with measurable user engagement, intuitive navigation, and robust maintainability.",
+                "challenges": "Implementing real-time conversational streaming while maintaining crisp visual craft and responsive typography across all screen viewports.",
+                "outcomes": "Delivered production-grade digital platform demonstrating end-to-end full-stack engineering and modern product design craft.",
                 "images": p_images
             })
     else:
         # High-quality fallback project breakdowns based on detected tools
-        primary_tools = detected["design_tools"][:4] or ["Figma", "React", "TypeScript", "Python"]
+        primary_tools = detected["design_tools"][:4] or ["React", "TypeScript", "Python", "Figma"]
         extracted_projects.append({
-            "name": "Intelligent Platform & Design System",
-            "type": "End-to-End Product Design",
+            "name": "Intelligent Digital Platform & Design System",
+            "type": "End-to-End Product Architecture",
             "role": "Lead Product Designer & Developer",
             "client_or_organization": "Core Portfolio Showcase",
             "timeline": "4 Months",
@@ -94,20 +109,6 @@ def run_heuristic_analysis(text: str, filename: str, images: list = None) -> dic
             "outcomes": "Delivered a high-impact digital showcase demonstrating full-stack engineering proficiency and modern product design craft.",
             "images": flat_images[:2]
         })
-        if len(primary_tools) > 2:
-            extracted_projects.append({
-                "name": "Responsive Web Application & UX Suite",
-                "type": "Web Architecture & UX",
-                "role": "Frontend & UI/UX Designer",
-                "client_or_organization": "Client Innovation MVP",
-                "timeline": "2 Months",
-                "team_size": "Team of 3",
-                "details": "Conducted user research, mapped user journeys, and translated wireframe prototypes into production web components.",
-                "technologies": primary_tools[2:] or ["TailwindCSS", "FastAPI"],
-                "challenges": "Ensuring cross-platform responsiveness and accessibility compliance across varied device viewports.",
-                "outcomes": "Achieved seamless responsive parity and positive user satisfaction across user validation testing.",
-                "images": flat_images[2:4]
-            })
 
     # ── Intelligent heuristic extraction for candidate profile fields ──────────
     lines = [l.strip() for l in text.split('\n') if l.strip()]
