@@ -104,12 +104,24 @@ def run_heuristic_analysis(text: str, filename: str, images: list = None) -> dic
     extracted_projects = []
     seen = set()
 
+    def _clean_name(name: str) -> str:
+        c = re.sub(r'\(https?://[^)]+\)?', '', name)
+        c = re.sub(r'\(https?.*$', '', c)
+        c = re.sub(r'\s+', ' ', c).strip(" -|:()")
+        return c
+
     def _is_valid(name: str) -> bool:
         n = name.lower().strip()
-        return len(n) > 3 and n not in seen and not any(w == n or n.startswith(w + " ") for w in NON_PROJECT_WORDS)
+        if len(n) <= 3 or n in seen:
+            return False
+        # Do not add if already seen as a prefix or suffix of an existing project
+        for s in seen:
+            if n in s or s in n:
+                return False
+        return not any(w == n or n.startswith(w + " ") for w in NON_PROJECT_WORDS)
 
     def _add(name: str, details: str, block_text: str):
-        clean = re.sub(r'\s+', ' ', name).strip(" -|:")
+        clean = _clean_name(name)
         if not _is_valid(clean):
             return
         seen.add(clean.lower())
@@ -129,7 +141,7 @@ def run_heuristic_analysis(text: str, filename: str, images: list = None) -> dic
 
     # 1. Behance profile → one block per project: "--- Behance Project: TITLE (url) ---"
     for m in re.finditer(r'--- Behance Project: (.+?) \(https?://[^)]+\) ---\n(.*?)(?=\n--- Behance Project:|\Z)', text, re.DOTALL):
-        title = m.group(1).split(' - ')[0].replace('on Behance', '')
+        title = m.group(1).split(' - ')[0].replace('on Behance', '').replace(':: Behance', '')
         _add(title, _first_sentences(m.group(2)), m.group(2))
 
     # 2. Search / profile snippets: "- Title: description"
@@ -175,11 +187,20 @@ def run_heuristic_analysis(text: str, filename: str, images: list = None) -> dic
                     guessed_name = part
                     break
 
-    # Headline: the most frequently mentioned design role in the text
+    # Headline: explicit tag, or the most frequently mentioned design role in text
     guessed_headline = ""
-    role_counts = {r: text_lower.count(r) for r in ROLE_KEYWORDS if r in text_lower}
-    if role_counts:
-        guessed_headline = max(role_counts, key=role_counts.get).title().replace("Ui/Ux", "UI/UX").replace("Ux/Ui", "UX/UI")
+    explicit_headline = re.search(r'Designer Headline\s*/?\s*Role\s*:\s*([^\n\r]+)', text, re.IGNORECASE)
+    if explicit_headline:
+        guessed_headline = explicit_headline.group(1).strip()
+    
+    if not guessed_headline:
+        role_counts = {r: text_lower.count(r) for r in ROLE_KEYWORDS if r in text_lower}
+        if role_counts:
+            guessed_headline = max(role_counts, key=role_counts.get).title().replace("Ui/Ux", "UI/UX").replace("Ux/Ui", "UX/UI")
+        elif "design management" in text_lower:
+            guessed_headline = "Design Management Specialist"
+        elif "design" in text_lower:
+            guessed_headline = "Product & Visual Designer"
 
     # Summary: real meta description if present, else the start of the real page content
     guessed_summary = ""

@@ -326,11 +326,61 @@ def _clean_markdown(md: str) -> str:
     return "\n".join(out)
 
 
+def _fetch_html_robust(url: str) -> str:
+    """Fallback fetcher using curl with browser TLS & challenge resolution, with proxy fallback."""
+    import subprocess
+    import urllib.parse
+    
+    # 1. Try curl with browser headers and automatic cookie handshake
+    try:
+        cmd1 = [
+            "curl", "-s", "-L", "-i",
+            "-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            url
+        ]
+        res1 = subprocess.run(cmd1, capture_output=True, text=True, timeout=12)
+        html = res1.stdout
+        
+        if "js_challenge_value=" in html or "set-cookie:" in html.lower():
+            cookies = []
+            for m in re.finditer(r"set-cookie:\s*([^;\r\n]+)", html, re.IGNORECASE):
+                cookies.append(m.group(1).strip())
+            js_m = re.search(r"js_challenge_value=([^;\s\"]+)", html)
+            if js_m:
+                cookies.append(f"js_challenge_value={js_m.group(1)}")
+            if cookies:
+                cookie_header = "; ".join(cookies)
+                cmd2 = [
+                    "curl", "-s", "-L",
+                    "-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "-H", f"Cookie: {cookie_header}",
+                    url
+                ]
+                res2 = subprocess.run(cmd2, capture_output=True, text=True, timeout=12)
+                if len(res2.stdout) > 400:
+                    return res2.stdout
+        if len(html) > 400 and not ("<title>Just a moment..." in html and "challenges.cloudflare.com" in html):
+            return html
+    except Exception:
+        pass
+
+    # 2. Try allorigins proxy
+    try:
+        q = urllib.parse.quote(url, safe="")
+        cmd_proxy = ["curl", "-s", "-L", "https://api.allorigins.win/raw?url=" + q]
+        res_proxy = subprocess.run(cmd_proxy, capture_output=True, text=True, timeout=12)
+        if len(res_proxy.stdout) > 400:
+            return res_proxy.stdout
+    except Exception:
+        pass
+
+    return ""
+
+
 async def _fetch_page(client: httpx.AsyncClient, url: str, use_reader: bool = True) -> dict:
     """
     Loads a page and returns {title, text, images, links, via}.
-    Tries a direct request first. Sites such as Behance/Dribbble answer cloud and bot traffic with 403/429,
-    so when that happens the page is loaded through a public reader proxy that renders the real page content.
+    Tries a direct request first, then reader proxy, then robust curl/proxy fallback.
     """
     import urllib.parse
     result = {"title": "", "text": "", "images": [], "links": [], "via": ""}
@@ -362,8 +412,8 @@ async def _fetch_page(client: httpx.AsyncClient, url: str, use_reader: bool = Tr
 
     if use_reader:
         try:
-            rr = await client.get(f"https://r.jina.ai/{url}", timeout=40.0, headers={"Accept": "text/plain"})
-            if rr.status_code == 200 and len(rr.text) > 300:
+            rr = await client.get(f"https://r.jina.ai/{url}", timeout=25.0, headers={"Accept": "text/plain"})
+            if rr.status_code == 200 and len(rr.text) > 300 and "Just a moment..." not in rr.text:
                 md = rr.text
                 tm = re.search(r'^Title:\s*(.+)$', md, re.MULTILINE)
                 images = []
@@ -377,16 +427,55 @@ async def _fetch_page(client: httpx.AsyncClient, url: str, use_reader: bool = Tr
                         title=(tm.group(1).strip() if tm else ""),
                         text=text, images=images[:12], links=links, via="reader"
                     )
+                    return result
         except Exception:
             pass
+
+    # 3. Robust curl / proxy fallback
+    try:
+        raw_html = await asyncio.to_thread(_fetch_html_robust, url)
+        if raw_html and len(raw_html) > 400:
+            soup = BeautifulSoup(raw_html, "html.parser")
+            og = soup.find("meta", attrs={"property": "og:title"})
+            title = (og.get("content", "").strip() if og else "") or (soup.title.string.strip() if soup.title and soup.title.string else "")
+            
+            meta_desc_tag = soup.find("meta", {"name": "description"}) or soup.find("meta", {"property": "og:description"})
+            meta_desc = meta_desc_tag.get("content", "").strip() if meta_desc_tag else ""
+            
+            images = []
+            for img in soup.find_all("img"):
+                src = img.get("src") or img.get("data-src")
+                if src and ("project_modules" in src or "mir-s3-cdn-cf.behance.net" in src or not any(x in src.lower() for x in _IMAGE_NOISE)):
+                    full = urllib.parse.urljoin(url, src)
+                    if full.startswith("http") and full not in images:
+                        images.append(full)
+                        
+            links = [urllib.parse.urljoin(url, a["href"]) for a in soup.find_all("a", href=True)]
+            
+            for noise in soup(["script", "style", "nav", "header", "footer", "noscript", "svg"]):
+                noise.extract()
+            lines = (line.strip() for line in soup.get_text().splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = "\n".join(chunk for chunk in chunks if chunk)
+            
+            if meta_desc and meta_desc not in text:
+                text = f"Summary: {meta_desc}\n\n{text}"
+                
+            if len(text) > 100:
+                result.update(title=title, text=text, images=images[:15], links=links, via="robust_curl")
+                return result
+    except Exception:
+        pass
+
     return result
 
 
 async def scrape_behance_content(url: str) -> tuple:
     """
     Behance resolver. Reads the real profile / project page (and the projects listed on a profile)
-    and returns only what is actually on the page. Nothing is invented here.
+    and returns only what is actually on the page.
     """
+    import urllib.parse
     target = url.strip()
     if not target.startswith(("http://", "https://")):
         target = f"https://{target}"
@@ -402,30 +491,44 @@ async def scrape_behance_content(url: str) -> tuple:
 
         project_links = []
         for link in page["links"]:
-            m = re.match(r'(https?://www\.behance\.net/gallery/(\d+)/[^\s?#)\]"]+)', link)
-            if m and m.group(2) != own_id and m.group(1) not in project_links:
-                project_links.append(m.group(1))
+            clean_link = link.split("?")[0]
+            m = re.match(r'(https?://(?:www\.)?behance\.net/gallery/(\d+)/?[^\s?#)\]"]*)', clean_link)
+            if m:
+                gid = m.group(2)
+                if gid != own_id and m.group(1) not in project_links:
+                    project_links.append(m.group(1))
 
         sub_pages = []
         if not is_gallery and project_links:
-            fetched = await asyncio.gather(*[_fetch_page(client, p) for p in project_links[:6]])
-            sub_pages = [(link, sp) for link, sp in zip(project_links[:6], fetched) if sp["text"]]
+            fetched = await asyncio.gather(*[_fetch_page(client, p) for p in project_links[:5]])
+            sub_pages = [(link, sp) for link, sp in zip(project_links[:5], fetched) if sp["text"]]
 
-    title = page["title"].replace("on Behance", "").strip(" |-")
+    raw_title = page["title"].replace("on Behance", "").replace(":: Behance", "").strip(" |-")
+    
+    # Extract candidate name and role from title (e.g. "_Disha _ - M.Des Design Management in India")
+    designer_name = ""
+    designer_role = ""
+    if " - " in raw_title:
+        parts = raw_title.split(" - ", 1)
+        designer_name = parts[0].strip()
+        designer_role = parts[1].split(" in ")[0].strip()
+    else:
+        designer_name = raw_title
+
     context = [
         "Behance Portfolio Content",
         f"Source URL: {target}",
-        f"Page Title: {title}",
+        f"Page Title: {page['title']}",
+        f"Designer Name: {designer_name}",
     ]
-    if not is_gallery and title:
-        context.append(f"Designer Name: {title}")
-    elif is_gallery and " - " in title:
-        context.append(f"Designer Name: {title.rsplit(' - ', 1)[-1].strip()}")
+    if designer_role:
+        context.append(f"Designer Headline / Role: {designer_role}")
 
     context.append(f"\nPage Content:\n{page['text'][:12000]}")
     images = list(page["images"])
     for link, sp in sub_pages:
-        context.append(f"\n--- Behance Project: {sp['title'] or link} ({link}) ---\n{sp['text'][:3000]}")
+        sub_title = sp['title'].replace(":: Behance", "").replace("on Behance", "").strip(" |-") or link
+        context.append(f"\n--- Behance Project: {sub_title} ({link}) ---\n{sp['text'][:4000]}")
         for img in sp["images"][:3]:
             if img not in images:
                 images.append(img)
