@@ -284,24 +284,72 @@ async def scrape_dribbble_content(url: str) -> tuple:
 
     return "\n".join(context), discovered_images, discovered_links
 
+async def scrape_github_content(url: str) -> tuple:
+    """Dedicated resolver for GitHub profiles and repositories that retrieves all public repositories, tech stacks, and project details."""
+    match = re.search(r'github\.com/([^/?#&]+)', url)
+    username = match.group(1) if match else ''
+    if not username or username.lower() in ['features', 'topics', 'trending', 'explore', 'login', 'signup']:
+        return f"GitHub Profile: {url}\nInvalid GitHub username.", [], []
+    
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"}
+    projects_info = []
+    discovered_images = []
+    discovered_links = []
+    
+    async with httpx.AsyncClient(timeout=12.0, follow_redirects=True, headers=headers) as client:
+        # Fetch user profile metadata
+        r_user = await client.get(f"https://api.github.com/users/{username}")
+        user_data = r_user.json() if r_user.status_code == 200 else {}
+        name = user_data.get("name") or username
+        bio = user_data.get("bio") or "Software Engineer & Full-Stack Developer"
+        avatar = user_data.get("avatar_url")
+        if avatar:
+            discovered_images.append(avatar)
+            
+        # Fetch candidate public repositories
+        r_repos = await client.get(f"https://api.github.com/users/{username}/repos?sort=updated&per_page=12")
+        if r_repos.status_code == 200:
+            for repo in r_repos.json():
+                if not repo.get("fork"):
+                    r_name = repo.get("name")
+                    r_desc = repo.get("description") or "Full-stack software engineering project."
+                    r_lang = repo.get("language") or "TypeScript / Python"
+                    r_topics = repo.get("topics") or []
+                    r_url = repo.get("html_url")
+                    discovered_links.append(r_url)
+                    projects_info.append(f"Project Name: {r_name}\nDescription: {r_desc}\nPrimary Tech: {r_lang}\nTopics: {', '.join(r_topics)}\nRepository URL: {r_url}")
+
+    context = [
+        f"GitHub Developer Portfolio: {name}",
+        f"Candidate Headline: {bio}",
+        f"GitHub Profile URL: {url}",
+        f"Total Projects & Repositories: {len(projects_info)}",
+        "\nProjects & Engineering Work Showcase:",
+        "\n\n".join(projects_info)
+    ]
+    return "\n".join(context), discovered_images, discovered_links
+
 async def scrape_url_content(url: str) -> tuple:
-    # If URL is a LinkedIn profile, use dedicated LinkedIn resolver
+    # 1. If URL is a GitHub profile or repo, use dedicated GitHub resolver
+    if "github.com" in url.lower():
+        return await scrape_github_content(url)
+    # 2. If URL is a LinkedIn profile, use dedicated LinkedIn resolver
     if "linkedin.com" in url.lower():
         return await scrape_linkedin_content(url)
-    # If URL is a Dribbble profile or shot, use dedicated Dribbble resolver
+    # 3. If URL is a Dribbble profile or shot, use dedicated Dribbble resolver
     if "dribbble.com" in url.lower():
         return await scrape_dribbble_content(url)
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     try:
-        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-            response = await client.get(url, headers=headers)
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True, headers=headers) as client:
+            response = await client.get(url)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, "html.parser")
                 
-                # Extract image URLs and insert inline text markers
+                # Extract image URLs
                 images = []
                 for img_tag in soup.find_all("img"):
                     src = img_tag.get("src") or img_tag.get("data-src") or img_tag.get("data-hi-res") or img_tag.get("srcset")
@@ -313,28 +361,38 @@ async def scrape_url_content(url: str) -> tuple:
                         absolute_url = urljoin(url, src)
                         if absolute_url.startswith("http") and not any(x in absolute_url.lower() for x in ["pixel", "analytics", "tracker", "sprite", "logo", "icon", "svg"]):
                             images.append(absolute_url)
-                            
-                            # Inject placeholder
                             placeholder = soup.new_tag("p")
                             placeholder.string = f"\n[IMAGE_URL: {absolute_url} CAPTION: {alt}]\n"
                             img_tag.insert_after(placeholder)
-                            
                             if len(images) >= 15:
                                 break
                 
-                # Extract links
+                # Extract links & discover GitHub footprint / project subpages
                 links = []
-                for a_tag in soup.find_all("a"):
-                    href = a_tag.get("href")
-                    if href:
-                        from urllib.parse import urljoin
-                        absolute_url = urljoin(url, href)
-                        if absolute_url.startswith("http") and not any(x in absolute_url.lower() for x in ["facebook", "twitter", "linkedin", "instagram", "youtube", "pinterest", "reddit"]):
-                            links.append(absolute_url)
-                            if len(links) >= 15:
-                                break
+                discovered_github_url = None
+                internal_project_urls = []
+                from urllib.parse import urljoin, urlparse
+                base_domain = urlparse(url).netloc
 
-                # Extract meta description for high-level context
+                for a_tag in soup.find_all("a", href=True):
+                    href = a_tag["href"].strip()
+                    if not href:
+                        continue
+                    absolute_url = urljoin(url, href)
+                    if absolute_url.startswith("http") and not any(x in absolute_url.lower() for x in ["facebook", "twitter", "instagram", "youtube", "pinterest", "reddit"]):
+                        links.append(absolute_url)
+                        # Check for github link
+                        if "github.com/" in absolute_url.lower() and not discovered_github_url:
+                            if not any(x in absolute_url.lower() for x in ["topics", "features", "login", "signup", "pricing"]):
+                                discovered_github_url = absolute_url
+                        # Check for internal project subpages
+                        parsed_link = urlparse(absolute_url)
+                        if parsed_link.netloc == base_domain and parsed_link.path and parsed_link.path != "/":
+                            if any(kw in parsed_link.path.lower() for kw in ["project", "work", "case-study", "portfolio", "app", "design", "lab"]):
+                                if absolute_url not in internal_project_urls and absolute_url != url:
+                                    internal_project_urls.append(absolute_url)
+
+                # Extract meta description & title
                 meta_desc = ""
                 meta_tag = soup.find("meta", attrs={"name": "description"}) or soup.find("meta", attrs={"property": "og:description"})
                 if meta_tag:
@@ -345,41 +403,60 @@ async def scrape_url_content(url: str) -> tuple:
                 if og_title_tag:
                     og_title = og_title_tag.get("content", "").strip()
 
-                # Extract LinkedIn JSON-LD schemas if available
-                linkedin_structured_info = ""
-                if "linkedin.com" in url.lower():
-                    for s_tag in soup.find_all("script", type="application/ld+json"):
-                        try:
-                            ld_data = json.loads(s_tag.string or "{}")
-                            if isinstance(ld_data, dict):
-                                if ld_data.get("@type") == "Person" or "@graph" in ld_data:
-                                    linkedin_structured_info += f"\nStructured Profile Data: {json.dumps(ld_data)}\n"
-                        except Exception:
-                            pass
-
-                # Strip structural navigation, scripts, styles, headers, and footers to isolate project body text
-                for noise in soup(["script", "style", "nav", "header", "footer", "aside", "noscript"]):
+                # Extract text contents
+                for noise in soup(["script", "style", "nav", "footer", "aside", "noscript"]):
                     noise.extract()
                 
-                # Further purge generic elements by class/id matching typical template noise
-                for class_noise in soup.find_all(class_=re.compile(r"footer|header|menu|nav|sidebar|copyright|cookie|social|advert", re.IGNORECASE)):
-                    class_noise.extract()
-                
-                # Extract text contents
                 lines = (line.strip() for line in soup.get_text().splitlines())
                 chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-                text = "\n".join(chunk for chunk in chunks if chunk)
-                
+                main_text = "\n".join(chunk for chunk in chunks if chunk)
                 title = og_title or (soup.title.string if soup.title else "Scraped Portfolio / Profile")
                 
-                context_str = f"Source URL: {url}\nTitle: {title}\n"
+                context_blocks = [
+                    f"Source Portfolio URL: {url}",
+                    f"Title: {title}"
+                ]
                 if meta_desc:
-                    context_str += f"Meta Description / Summary: {meta_desc}\n"
-                if linkedin_structured_info:
-                    context_str += f"{linkedin_structured_info}\n"
-                return f"{context_str}Content:\n{text[:18000]}", images, links
+                    context_blocks.append(f"Meta Description / Summary: {meta_desc}")
+                context_blocks.append(f"Main Portfolio Content:\n{main_text[:12000]}")
+
+                # Crawl discovered internal project pages in parallel
+                if internal_project_urls:
+                    async def fetch_subpage(sub_url: str) -> str:
+                        try:
+                            sub_res = await client.get(sub_url, timeout=8.0)
+                            if sub_res.status_code == 200:
+                                sub_soup = BeautifulSoup(sub_res.text, "html.parser")
+                                for n in sub_soup(["script", "style", "nav", "footer"]):
+                                    n.extract()
+                                sub_lines = (l.strip() for l in sub_soup.get_text().splitlines())
+                                sub_chunks = (p.strip() for p in sub_lines for p in p.split("  "))
+                                sub_text = "\n".join(c for c in sub_chunks if c)
+                                sub_title = sub_soup.title.string if sub_soup.title else sub_url
+                                return f"\n--- Project Subpage: {sub_title} ({sub_url}) ---\n{sub_text[:3000]}"
+                        except Exception:
+                            pass
+                        return ""
+
+                    sub_tasks = [fetch_subpage(u) for u in internal_project_urls[:5]]
+                    sub_results = await asyncio.gather(*sub_tasks)
+                    for r in sub_results:
+                        if r:
+                            context_blocks.append(r)
+
+                # If candidate GitHub was discovered, fetch their repositories
+                if discovered_github_url:
+                    try:
+                        gh_context, gh_imgs, gh_lnks = await scrape_github_content(discovered_github_url)
+                        if gh_context:
+                            context_blocks.append(f"\n--- Discovered GitHub Repositories ({discovered_github_url}) ---\n{gh_context}")
+                            images.extend(gh_imgs)
+                            links.extend(gh_lnks)
+                    except Exception:
+                        pass
+
+                return "\n\n".join(context_blocks), images, links
             else:
-                # If scraping returns 999 or auth error, fallback to candidate discovery
                 if "linkedin.com" in url.lower() or response.status_code in [999, 403]:
                     return await scrape_linkedin_content(url)
                 return f"Failed to retrieve URL {url}. Status code: {response.status_code}", [], []
