@@ -701,7 +701,8 @@ async def scrape_url_content(url: str) -> tuple:
                                 sub_chunks = (p.strip() for p in sub_lines for p in p.split("  "))
                                 sub_text = "\n".join(c for c in sub_chunks if c)
                                 sub_title = sub_soup.title.string if sub_soup.title else sub_url
-                                return f"\n--- Design Case Study Subpage: {sub_title} ({sub_url}) ---\n{sub_text[:3500]}"
+                                if len(sub_text) > 150 and sub_text[:300] not in main_text:
+                                    return f"\n--- Design Case Study Subpage: {sub_title} ({sub_url}) ---\n{sub_text[:3500]}"
                         except Exception:
                             pass
                         return ""
@@ -826,7 +827,7 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
     Everything you output must come from the portfolio text below. Do not rate, score, review or grade anything.
 
     CRITICAL RULES:
-    1. Extract EVERY real project / case study in the text (do not stop at 1-2). Use the project's real title exactly as written.
+    1. Extract EVERY real project / case study in the text (do not stop at 1-2). A real project MUST have a description of the work done. If there are no specific projects described in the text, return an empty list `[]` for projects. Do NOT invent or hallucinate projects from simple navigation links, page titles, or meta descriptions.
     2. For each project write a substantive `details` paragraph (3-5 sentences) in your own words summarising: the context/client, the problem or brief, the approach/process, and what was produced — using only facts present in that project's text.
     3. Fill `challenges` (the problem / brief / insight) and `outcomes` (deliverables, frameworks, findings, results) whenever the project text states them. Use null only if truly absent.
     4. `role`, `client_or_organization`, `timeline`, `team_size`: fill only if stated or clearly implied by the text (e.g. 'Service Design at VHC' -> client 'VHC'). Otherwise null.
