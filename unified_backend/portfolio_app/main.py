@@ -74,41 +74,43 @@ class UrlAnalyzeRequest(BaseModel):
     url: str
 
 async def process_portfolio_job(job_id: str, content: str, source_label: str, extracted_images: list = None, extracted_links: list = None, local_file_to_clean: str = None):
+    """Runs the full analysis and returns the report dict. Raises on failure."""
     try:
         from portfolio_app.database import SessionLocal
     except ImportError:
         from database import SessionLocal
     db = SessionLocal()
     try:
-        # Step 2: Save raw contents to MinIO/S3
+        # Optional steps (raw-content backup + vector index) are best-effort and time-boxed
+        # so they can never delay or break the analysis result.
         try:
-            s3_url = await asyncio.to_thread(
+            s3_url = await asyncio.wait_for(asyncio.to_thread(
                 storage_client.upload_data,
                 content.encode("utf-8"),
                 f"{job_id}/source_content.txt",
                 "text/plain"
-            )
+            ), timeout=5)
             print(f"Stored raw content to MinIO/S3: {s3_url}")
         except Exception as e:
-            print(f"Failed storing raw content in S3: {e}")
+            print(f"Skipped storing raw content in S3: {e}")
 
-        # Step 3: Embed content for Qdrant Vector search
         try:
-            embedding = await generate_text_embedding(content)
-            # Add to Qdrant collection for RAG-based similarity search
-            await asyncio.to_thread(
-                vector_db.add_portfolio_chunk,
-                job_id=job_id,
-                chunk_index=0,
-                text=content[:2000],
-                vector=embedding,
-                metadata={"source": source_label}
-            )
+            async def _index():
+                embedding = await generate_text_embedding(content)
+                await asyncio.to_thread(
+                    vector_db.add_portfolio_chunk,
+                    job_id=job_id,
+                    chunk_index=0,
+                    text=content[:2000],
+                    vector=embedding,
+                    metadata={"source": source_label}
+                )
+            await asyncio.wait_for(_index(), timeout=6)
             print("Successfully indexed chunk vector to Qdrant.")
         except Exception as e:
             print(f"Qdrant vector indexing skipped or failed: {e}")
 
-        # Step 4: Run parallelized AI analysis
+        # Run AI analysis (Gemini -> Groq -> offline heuristics)
         report_data = await asyncio.to_thread(
             run_ai_analysis,
             content,
@@ -181,12 +183,18 @@ async def process_portfolio_job(job_id: str, content: str, source_label: str, ex
             except Exception as fs_err:
                 print(f"Firestore persistence warning: {fs_err}")
 
+        return report_data
+
     except Exception as e:
-        print(f"Error in background processing of job {job_id}: {e}")
-        db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
-        if db_job:
-            db_job.status = "error"
-            db.commit()
+        print(f"Error in processing of job {job_id}: {e}")
+        try:
+            db_job = db.query(models.Job).filter(models.Job.id == job_id).first()
+            if db_job:
+                db_job.status = "error"
+                db.commit()
+        except Exception:
+            pass
+        raise
     finally:
         db.close()
         # Clean up temporary uploads if any
@@ -470,18 +478,33 @@ async def analyze_pdf(
     extracted_images = re.findall(r'\[IMAGE_URL:\s*([^\s\]]+)', text_content)
     extracted_links = re.findall(r'https?://[^\s<>"\']+|www\.[^\s<>"\']+', text_content)[:15]
 
-    # Queue async processing
-    background_tasks.add_task(
-        process_portfolio_job,
-        job_id=job_id,
-        content=text_content,
-        source_label=file.filename,
-        extracted_images=extracted_images,
-        extracted_links=extracted_links,
-        local_file_to_clean=temp_file_path
-    )
+    # Run the analysis inline so the finished report is returned in this same response.
+    # (Serverless instances don't share memory, so a separate polling request can't reliably find the job.)
+    try:
+        report = await process_portfolio_job(
+            job_id=job_id,
+            content=text_content,
+            source_label=file.filename,
+            extracted_images=extracted_images,
+            extracted_links=extracted_links,
+            local_file_to_clean=temp_file_path
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Portfolio analysis failed: {e}")
 
-    return {"job_id": job_id, "status": "processing"}
+    return {"job_id": job_id, "status": "completed", "filename": file.filename, "results": report}
+
+@app.get("/api/v1/diagnostics")
+@app.get("/v1/diagnostics")
+async def diagnostics():
+    """Reports which analysis engines are configured (booleans only, never secrets)."""
+    return {
+        "gemini_configured": bool(os.getenv("GEMINI_API_KEY", "").strip()),
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+        "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
+        "firestore_available": get_fs_client() is not None,
+        "vercel": bool(os.environ.get("VERCEL")),
+    }
 
 @app.post("/api/v1/analyze/url")
 @app.post("/v1/analyze/url")
@@ -555,17 +578,21 @@ async def analyze_url(
         except Exception:
             pass
 
-    # Queue background analysis workflow
-    background_tasks.add_task(
-        process_portfolio_job,
-        job_id=job_id,
-        content=content,
-        source_label=source_label,
-        extracted_images=extracted_images,
-        extracted_links=extracted_links
-    )
+    # Run the analysis inline and return the finished report in this response.
+    try:
+        report = await process_portfolio_job(
+            job_id=job_id,
+            content=content,
+            source_label=source_label,
+            extracted_images=extracted_images,
+            extracted_links=extracted_links
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Portfolio analysis failed: {e}")
 
-    return {"job_id": job_id, "status": "processing"}
+    if isinstance(report, dict):
+        report["source_url"] = url
+    return {"job_id": job_id, "status": "completed", "portfolio_url": url, "results": report}
 
 @app.get("/api/v1/report/{job_id}")
 @app.get("/v1/report/{job_id}")

@@ -326,6 +326,33 @@ def _clean_markdown(md: str) -> str:
     return "\n".join(out)
 
 
+_BOILERPLATE_PHRASES = (
+    "to view personalized recommendations", "follow creatives", "sign up with", "continue with google",
+    "continue with facebook", "continue with apple", "by signing up", "already have an account",
+    "forgot password", "cookie preferences", "do not sell or share", "download on the app store",
+    "get it on google play", "try behance pro", "more behance", "careers at behance", "terms of use",
+    "adobe portfolio", "view all comments", "add a comment", "report project", "copy link",
+    "just a moment", "enable javascript", "checking your browser",
+)
+
+
+def _html_to_text(soup) -> str:
+    """Readable, newline-separated page text with site chrome removed (keeps fields like name / degree / location on separate lines)."""
+    for noise in soup(["script", "style", "nav", "header", "footer", "noscript", "svg", "form", "button"]):
+        noise.extract()
+    out, prev = [], ""
+    for raw in soup.get_text("\n").splitlines():
+        line = re.sub(r'\s+', ' ', raw).strip()
+        low = line.lower()
+        if not line or low in _NAV_NOISE or any(p in low for p in _BOILERPLATE_PHRASES):
+            continue
+        if line == prev:
+            continue
+        out.append(line)
+        prev = line
+    return "\n".join(out)
+
+
 def _fetch_html_robust(url: str) -> str:
     """Fallback fetcher using curl with browser TLS & challenge resolution, with proxy fallback."""
     import subprocess
@@ -399,11 +426,7 @@ async def _fetch_page(client: httpx.AsyncClient, url: str, use_reader: bool = Tr
                     if full.startswith("http") and full not in images:
                         images.append(full)
             links = [urllib.parse.urljoin(url, a["href"]) for a in soup.find_all("a", href=True)]
-            for noise in soup(["script", "style", "nav", "header", "footer", "noscript"]):
-                noise.extract()
-            lines = (line.strip() for line in soup.get_text().splitlines())
-            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-            text = "\n".join(chunk for chunk in chunks if chunk)
+            text = _html_to_text(soup)
             if len(text) > 300:
                 result.update(title=title, text=text, images=images[:12], links=links, via="direct")
                 return result
@@ -452,14 +475,11 @@ async def _fetch_page(client: httpx.AsyncClient, url: str, use_reader: bool = Tr
                         
             links = [urllib.parse.urljoin(url, a["href"]) for a in soup.find_all("a", href=True)]
             
-            for noise in soup(["script", "style", "nav", "header", "footer", "noscript", "svg"]):
-                noise.extract()
-            lines = (line.strip() for line in soup.get_text().splitlines())
-            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-            text = "\n".join(chunk for chunk in chunks if chunk)
-            
-            if meta_desc and meta_desc not in text:
-                text = f"Summary: {meta_desc}\n\n{text}"
+            text = _html_to_text(soup)
+
+            generic_meta = (not meta_desc) or meta_desc.lower().endswith("on behance") or meta_desc.lower().endswith("on dribbble")
+            if not generic_meta and meta_desc[:60] not in text:
+                text = f"{meta_desc}\n\n{text}"
                 
             if len(text) > 100:
                 result.update(title=title, text=text, images=images[:15], links=links, via="robust_curl")
@@ -503,17 +523,46 @@ async def scrape_behance_content(url: str) -> tuple:
             fetched = await asyncio.gather(*[_fetch_page(client, p) for p in project_links[:5]])
             sub_pages = [(link, sp) for link, sp in zip(project_links[:5], fetched) if sp["text"]]
 
+    def _behance_images(imgs: list) -> list:
+        keep = [i for i in imgs if "behance.net" in i and ("project_modules" in i or "/projects/" in i or "/project_covers/" in i)]
+        return keep or []
+
     raw_title = page["title"].replace("on Behance", "").replace(":: Behance", "").strip(" |-")
-    
-    # Extract candidate name and role from title (e.g. "_Disha _ - M.Des Design Management in India")
-    designer_name = ""
-    designer_role = ""
-    if " - " in raw_title:
-        parts = raw_title.split(" - ", 1)
-        designer_name = parts[0].strip()
-        designer_role = parts[1].split(" in ")[0].strip()
-    else:
-        designer_name = raw_title
+
+    # Name / headline / location from the page title, e.g. "_Disha _ - M.Des Design Management in India"
+    designer_name, designer_role, designer_location = raw_title, "", ""
+    if " - " in raw_title and not is_gallery:
+        designer_name, rest = [p.strip() for p in raw_title.split(" - ", 1)]
+        if " in " in rest:
+            designer_role, designer_location = [p.strip() for p in rest.rsplit(" in ", 1)]
+        else:
+            designer_role = rest
+    elif is_gallery and " by " in raw_title:
+        designer_name = raw_title.rsplit(" by ", 1)[-1].strip()
+
+    # Structured facts from the profile block (lines are now separated)
+    profile_lines = [l for l in page["text"].splitlines() if l.strip()]
+    facts = []
+    for l in profile_lines[:30]:
+        low = l.lower()
+        if low.startswith(("available for", "open to")) or re.match(r'^(project views|appreciations|followers|following)\b', low):
+            facts.append(l)
+    stats = {}
+    flat = " ".join(profile_lines[:60])
+    for label in ("Project Views", "Appreciations", "Followers", "Following"):
+        m = re.search(label + r'\s*[:\n ]?\s*([\d,\.]+[KkMm]?)', flat)
+        if m:
+            stats[label] = m.group(1)
+    institution = ""
+    if designer_role:
+        try:
+            idx = next(i for i, l in enumerate(profile_lines) if designer_role.lower() in l.lower())
+            if idx + 1 < len(profile_lines):
+                nxt = profile_lines[idx + 1]
+                if len(nxt) < 80 and nxt.lower() not in (designer_location.lower(), "follow", "message"):
+                    institution = nxt
+        except StopIteration:
+            pass
 
     context = [
         "Behance Portfolio Content",
@@ -523,17 +572,27 @@ async def scrape_behance_content(url: str) -> tuple:
     ]
     if designer_role:
         context.append(f"Designer Headline / Role: {designer_role}")
+    if institution:
+        context.append(f"Institution / Company: {institution}")
+    if designer_location:
+        context.append(f"Location: {designer_location}")
+    if facts:
+        context.append("Availability: " + "; ".join(f for f in facts if f.lower().startswith(("available", "open"))))
+    if stats:
+        context.append("Behance stats: " + ", ".join(f"{k} {v}" for k, v in stats.items()))
 
-    context.append(f"\nPage Content:\n{page['text'][:12000]}")
-    images = list(page["images"])
+    context.append(f"\nPage Content:\n{page['text'][:8000]}")
+    images = _behance_images(page["images"])
     for link, sp in sub_pages:
         sub_title = sp['title'].replace(":: Behance", "").replace("on Behance", "").strip(" |-") or link
-        context.append(f"\n--- Behance Project: {sub_title} ({link}) ---\n{sp['text'][:4000]}")
-        for img in sp["images"][:3]:
+        sub_imgs = _behance_images(sp["images"])[:4]
+        img_markers = "\n".join(f"[IMAGE_URL: {u}]" for u in sub_imgs)
+        context.append(f"\n--- Behance Project: {sub_title} ({link}) ---\n{sp['text'][:4500]}\n{img_markers}")
+        for img in sub_imgs:
             if img not in images:
                 images.append(img)
 
-    return "\n".join(context), images[:15], project_links[:15]
+    return "\n".join(context), images[:20], project_links[:15]
 
 
 async def scrape_url_content(url: str) -> tuple:
@@ -763,23 +822,28 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
     from openai import OpenAI
 
     prompt = f"""
-    You are Portfolio Ingestion Agent — a world-class AI system that analyzes portfolios to extract candidate profiles, technology stack tools, identify design artifacts, and list authentic projects.
-    Your task is to analyze the portfolio content below and extract structured data. Focus strictly on objective data extraction; do not include ratings, reviews, recommendations, or grading of any kind.
+    You are Portfolio Ingestion Agent — an expert design-recruiter analyst. You read a DESIGNER's portfolio (Behance, Dribbble, Figma, LinkedIn, personal site or PDF) and turn it into a precise, richly detailed candidate profile.
+    Everything you output must come from the portfolio text below. Do not rate, score, review or grade anything.
 
     CRITICAL RULES:
-    1. Extract ONLY REAL projects, case studies, interactive applications, or platforms actually built/designed by the candidate as described in the text.
-    2. Do NOT invent or hallucinate third-party technology companies (e.g., OpenAI, Google, Anthropic, Meta) as projects built by the candidate.
-    3. If the portfolio itself is an interactive platform, digital headquarters, or showcase (e.g. 'Project Atlas' or 'AtlasAI'), extract it accurately as a flagship case study with its true purpose, architecture, and tech stack.
-    4. Accurately extract the candidate's full name, role title, and professional background.
-    5. Extract all explicit design tools, frameworks, programming languages, and databases mentioned.
-    6. Look for inline markers like `[IMAGE_URL: <url> CAPTION: <text>]` inside the text stream. Assign matching image URLs to corresponding projects.
-    7. NEVER invent facts. Only use what is written in the portfolio text. If something (client, timeline, outcomes, years of experience) is not stated, use null or an empty list instead of guessing. The candidate name must be the person who owns the portfolio in the text.
+    1. Extract EVERY real project / case study in the text (do not stop at 1-2). Use the project's real title exactly as written.
+    2. For each project write a substantive `details` paragraph (3-5 sentences) in your own words summarising: the context/client, the problem or brief, the approach/process, and what was produced — using only facts present in that project's text.
+    3. Fill `challenges` (the problem / brief / insight) and `outcomes` (deliverables, frameworks, findings, results) whenever the project text states them. Use null only if truly absent.
+    4. `role`, `client_or_organization`, `timeline`, `team_size`: fill only if stated or clearly implied by the text (e.g. 'Service Design at VHC' -> client 'VHC'). Otherwise null.
+    5. `type`: classify the project as a designer would (e.g. 'Service Design', 'Brand Strategy', 'Mobile App UX/UI', 'Design Research', 'Futures / Foresight', 'Branding & Identity', 'Motion', 'Packaging', 'Design System').
+    6. `summary`: 3-4 sentence professional bio of the designer built from their headline, education/company, location, availability and the nature of their projects. Never copy raw page text, UI labels, statistics or navigation text.
+    7. `skills.design_tools`: only real software/tools explicitly named (Figma, Illustrator, Miro, After Effects...). `skills.methodologies_and_processes`: design methods evidenced in the projects (user research, thematic analysis, journey mapping, service blueprinting, foresight, brand positioning, prototyping...). `skills.soft_skills`: only those clearly demonstrated.
+    8. `industries`: industries the projects are actually about (e.g. 'Automotive', 'Art & Culture', 'Beauty & Personal Care', 'Water & Infrastructure'). `strengths`: 3-5 concise strengths evidenced by the work.
+    9. `target_roles`: 1-3 realistic design roles that fit the evidenced work (e.g. 'Service Designer', 'Design Researcher', 'Brand Strategist'). `headline`: the designer's own headline/degree/title from the text.
+    10. Do NOT invent facts, companies, tools or numbers. Do not treat third-party brands as the candidate's employers unless stated. If something is not in the text use null or an empty list.
+    11. Inline markers like `[IMAGE_URL: <url>]` inside a project block belong to that project: put them in that project's `images`.
+    12. The candidate name is the person who owns the portfolio (see 'Designer Name' / page title), never a project name.
 
     Source Context: {filename}
 
     Portfolio text content:
     ---
-    {text[:15000]}
+    {text[:24000]}
     ---
 
     Return a JSON object matching EXACTLY this structure. Output only valid JSON — no markdown, no preambles:
@@ -843,7 +907,7 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
     if gemini_key:
         try:
             from google import genai
-            client = genai.Client(api_key=gemini_key)
+            client = genai.Client(api_key=gemini_key, http_options={"timeout": 40000})
             
             for m in models_to_try:
                 try:
@@ -877,7 +941,7 @@ def run_ai_analysis(text: str, filename: str, images: list = None, links: list =
         groq_models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
         try:
             from openai import OpenAI
-            groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=groq_key)
+            groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=groq_key, timeout=40.0)
             for gm in groq_models:
                 try:
                     chat_resp = groq_client.chat.completions.create(

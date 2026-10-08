@@ -13,82 +13,22 @@ const STEPS = [
   { id: 3, label: 'Synthesizing Intelligence Report' },
 ];
 
-function AnalyzingScreen({ jobId, onDone }: { jobId: string | null; onDone: (data: any) => void }) {
+function AnalyzingScreen() {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
-    if (!jobId) {
-      // Local fallback animation if no background jobId
-      const timings = [1200, 2400, 4000, 6000];
-      const timers: ReturnType<typeof setTimeout>[] = [];
+    let stepIndex = 0;
+    const stepInterval = setInterval(() => {
+      if (stepIndex < 3) {
+        setCompletedSteps((prev) => Array.from(new Set([...prev, stepIndex])));
+        setActiveStep(stepIndex + 1);
+        stepIndex++;
+      }
+    }, 4500); // Progresses every 4.5 seconds to cover long API calls
 
-      timings.forEach((delay, i) => {
-        timers.push(
-          setTimeout(() => {
-            setCompletedSteps((prev) => [...prev, i]);
-            if (i < STEPS.length - 1) {
-              setActiveStep(i + 1);
-            } else {
-              setTimeout(() => onDone(null), 800);
-            }
-          }, delay)
-        );
-      });
-
-      return () => timers.forEach(clearTimeout);
-    } else {
-      // Poll the real backend
-      let stepIndex = 0;
-      const stepInterval = setInterval(() => {
-        if (stepIndex < 3) {
-          setCompletedSteps((prev) => Array.from(new Set([...prev, stepIndex])));
-          setActiveStep(stepIndex + 1);
-          stepIndex++;
-        }
-      }, 2000);
-
-      let pollCount = 0;
-      const MAX_POLLS = 30;
-
-      const pollInterval = setInterval(async () => {
-        try {
-          pollCount++;
-          if (pollCount > MAX_POLLS) {
-            clearInterval(pollInterval);
-            clearInterval(stepInterval);
-            console.error('Polling timeout reached.');
-            alert('Analysis timed out. Please try again later.');
-            onDone(null);
-            return;
-          }
-
-          const res = await portfolioApi.getReport(jobId);
-          if (res.data.status === 'completed') {
-            clearInterval(pollInterval);
-            clearInterval(stepInterval);
-            setCompletedSteps([0, 1, 2, 3]);
-            setTimeout(() => {
-              onDone(res.data.results);
-            }, 800);
-          } else if (res.data.status === 'failed' || res.data.status === 'error') {
-            clearInterval(pollInterval);
-            clearInterval(stepInterval);
-            console.error('Analysis status:', res.data.status, res.data);
-            alert('Analysis failed. Please verify the URL is publicly accessible or upload a PDF.');
-            onDone(null);
-          }
-        } catch (e) {
-          console.error("Polling error:", e);
-        }
-      }, 2500);
-
-      return () => {
-        clearInterval(pollInterval);
-        clearInterval(stepInterval);
-      };
-    }
-  }, [jobId, onDone]);
+    return () => clearInterval(stepInterval);
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAF9F7] font-sans">
@@ -548,9 +488,11 @@ export function PortfolioManager() {
         const formData = new FormData();
         formData.append('file', selectedPdfFile);
         const res = await portfolioApi.analyzePdf(formData);
-        if (res.data && res.data.job_id) {
-          setJobId(res.data.job_id);
-        } else if (res.data) {
+        if (res.data && res.data.status === 'completed' && res.data.results) {
+          handleAnalysisDone(res.data.results);
+        } else if (res.data && res.data.results) {
+          handleAnalysisDone(res.data.results);
+        } else {
           handleAnalysisDone(res.data);
         }
       } catch (err: any) {
@@ -560,6 +502,7 @@ export function PortfolioManager() {
         alert(msg);
       }
     } else {
+      // Shouldn't reach here normally
       setIsAnalyzing(true);
     }
   }
@@ -582,15 +525,17 @@ export function PortfolioManager() {
         }
 
         const res = await portfolioApi.analyzeUrl(finalUrl);
-        if (res.data && res.data.job_id) {
-          setJobId(res.data.job_id);
-        } else if (res.data) {
+        if (res.data && res.data.status === 'completed' && res.data.results) {
+          handleAnalysisDone(res.data.results);
+        } else if (res.data && res.data.results) {
+          handleAnalysisDone(res.data.results);
+        } else {
           handleAnalysisDone(res.data);
         }
       } catch (err: any) {
         console.error(err);
         setIsAnalyzing(false);
-        const msg = err.response?.data?.detail || 'Failed to start portfolio analysis. Please verify the URL.';
+        const msg = err.response?.data?.detail || 'Failed to analyze portfolio. Please verify the URL.';
         alert(msg);
       }
     } else {
@@ -618,7 +563,7 @@ export function PortfolioManager() {
 
   // Show analyzing screen
   if (isAnalyzing) {
-    return <AnalyzingScreen jobId={jobId} onDone={handleAnalysisDone} />;
+    return <AnalyzingScreen />;
   }
 
   // After analysis completes, show full intelligence report
